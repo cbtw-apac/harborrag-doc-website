@@ -6,7 +6,7 @@
 | Target release | HarborRAG v2.0.0 stable |
 | Repos | Source: `cbtw-apac/HarborRAG` · Site: `cbtw-apac/harborrag-doc-website` (public since 16 Sep 2026, `main`) |
 | Related | HARBORRAG-837 (docs & website), Notification epic, ragflow-docs (reference pattern) |
-| Last updated | 15 Sep 2026 (§8 tokens per DevOps review) |
+| Last updated | 16 Sep 2026 (§6 gains an MDX-sanitise step: the v4 future flags the Faster bundler requires disable MDX 1 compatibility. Earlier: 15 Sep — §8 tokens per DevOps review) |
 
 ## 1. Purpose
 
@@ -131,7 +131,9 @@ Input: a shallow, sparse checkout of HarborRAG at `sha` limited to `docs/`, `REA
 4. **Frontmatter**: HarborRAG docs have none. Generate `title` (first H1, then strip it), `sidebar_position` (order from TOC.md), `description` (first paragraph, truncated), `custom_edit_url` (HarborRAG blob URL at the source path on `main`), `source_ref`/`source_sha` (for the "synced from" footer). Never require frontmatter in the source repo.
 5. **Link rewrite** (port of `markdown_links.py`): `../../CONTRIBUTING.md` → `/project/contributing`; `../packages/harborrag/README.md` → `/packages/harborrag`; intra-docs `x/README.md` → directory route; `.md#anchor` preserved; absolute `github.com/cbtw-apac/HarborRAG` links untouched; the "Last reviewed" footer line kept.
 6. **Sidebar generation**: `docs/TOC.md` sections and order → `sidebars.ts` (Next) or `versioned_sidebars/version-<X.Y>-sidebars.json`. Curated links in TOC that point outside docs (LICENSE, GitHub) become `type: link` items.
-7. **Branding check** (port of `check_branding.py`), then **strict build** in `pr-check.yml` with `onBrokenLinks: 'throw'` and `onBrokenMarkdownLinks: 'throw'` — a broken link in source docs blocks the sync PR and is reported back with the source path, which is the right pressure on the source repo.
+7. **Branding check** (port of `check_branding.py`).
+8. **MDX sanitise**: the site runs with `future: { v4: true, faster: true }` (required — `faster` implies `ssgWorkerThreads`, which the config validator gates behind a v4 flag), and `v4` turns off MDX 1 compatibility. Docusaurus 3 compiles `.md` through MDX, so HTML comments and bare `{`/`<` in HarborRAG's markdown — which has never been through an MDX pipeline — become compile errors. Strip comments, escape stray braces and angle brackets, hard-error with the source path on anything ambiguous.
+9. **Strict build** in `pr-check.yml` with `onBrokenLinks: 'throw'` and `onBrokenMarkdownLinks: 'throw'` — a broken link in source docs blocks the sync PR and is reported back with the source path, which is the right pressure on the source repo.
 
 Not ingested: CI coverage and test-status pages (today under `site/coverage/`). They are CI artifacts, not documentation; keep them as an Actions artifact link from the Testing page until a separate decision is made (§11).
 

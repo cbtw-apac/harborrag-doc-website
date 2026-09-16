@@ -50,6 +50,8 @@ make check                               # ingest tests + typecheck + strict bui
 
 Do not run `corepack enable`; pnpm is already the pinned manager.
 
+Do not run bare `pnpm self-update` either. pnpm 12 ships as `@pnpm/exe`, whose `pnpm` bin is a placeholder shell script that an install *build script* must replace with the native binary — and pnpm 10 blocks dependency build scripts by default, so the upgrade leaves an unexecutable shim and every `pnpm` command breaks (on Windows it pops the "how do you want to open this file" dialog). Pass a version, `pnpm self-update 10.33.0`, or reinstall with `$env:PNPM_VERSION` and `https://get.pnpm.io/install.ps1`.
+
 ## Status
 
 - [x] Docusaurus scaffold, typed `versions.json` / `sync-state.json` boundary

@@ -5,7 +5,7 @@
 | Status | Draft for review (Nguyen, Huy; implementers Huyen, Hoang) |
 | Repo | `cbtw-apac/harborrag-doc-website` (public since 16 Sep 2026, `main`) |
 | Companion | "HarborRAG documentation website — two-repo sync architecture" (read that first) |
-| Last updated | 15 Sep 2026 (§2 typed JSON boundary, sync-state shape, TS 6 tsconfig; pnpm; §6.2 + §7 two-PAT approval per DevOps review) |
+| Last updated | 16 Sep 2026 (§2 `future` flags corrected to `{v4, faster}` for 3.10, mermaid theme install, navbar parking, `/docs/next` route; §3 MDX 1 compat note. Earlier: 15 Sep — §2 typed JSON boundary, sync-state shape, TS 6 tsconfig; pnpm; §6.2 + §7 two-PAT approval per DevOps review) |
 
 This is the implementation guide for the architecture page. It is written so that someone can scaffold the repo from zero, run it locally against a HarborRAG checkout, and wire the CI, in that order. Steps are numbered; each ends with a check.
 
@@ -14,7 +14,7 @@ This is the implementation guide for the architecture page. It is written so tha
 | Tool | Version | Used for |
 |---|---|---|
 | Node.js | 20 LTS (22 also fine) | Docusaurus |
-| pnpm | 9+ (pinned via `"packageManager"` in `website/package.json`) | package manager — commit `pnpm-lock.yaml`; corepack is not needed |
+| pnpm | 10.33.0, pinned via `"packageManager"` in `website/package.json` | package manager — commit `pnpm-lock.yaml`; corepack is not needed. **Never run bare `pnpm self-update`**: pnpm 12 ships as `@pnpm/exe`, whose `pnpm` bin is a placeholder shell script that an *install build script* must replace with the native binary. pnpm 10 blocks dependency build scripts by default, so the upgrade leaves an unexecutable shim and every `pnpm` command dies (on Windows it opens the "how do you want to open this file" dialog). Pass a version — `pnpm self-update 10.33.0` — or use `$env:PNPM_VERSION` with `https://get.pnpm.io/install.ps1` |
 | Python | 3.12 | ingest script (`uv`-managed, same as HarborRAG) |
 | uv | latest | Python env for `scripts/ingest` |
 | gh CLI | latest | testing `repository_dispatch`, PR automation locally |
@@ -80,6 +80,8 @@ printf 'auto-install-peers=true\n' > .npmrc          # Docusaurus has a wide pee
 pnpm dlx create-docusaurus@latest website classic --typescript --package-manager pnpm
 cd website && pnpm install
 rm -rf blog docs/* src/pages/markdown-page.md   # blog off, docs will be generated
+# the classic preset does NOT include the mermaid theme, but the config below declares it:
+pnpm add @docusaurus/theme-mermaid@3.10.2
 # pin the manager so CI and every laptop use the same one:
 pnpm pkg set packageManager="pnpm@$(pnpm --version)"
 ```
@@ -170,10 +172,15 @@ const config: Config = {
   organizationName: 'cbtw-apac',
   projectName: 'harborrag-doc-website',
   trailingSlash: false,
+  // 3.10 renamed `experimental_faster` to `faster`. `faster` implies ssgWorkerThreads,
+  // which REQUIRES future.v4.removeLegacyPostBuildHeadAttribute — so v4 comes along.
+  // v4 also turns on useCssCascadeLayers (helps §5 theming), siteStorageNamespacing,
+  // fasterByDefault and mdx1CompatDisabledByDefault (see §3, step 6).
+  future: { v4: true, faster: true },
   onBrokenLinks: 'throw',
   onBrokenAnchors: 'throw',
   markdown: { mermaid: true, hooks: { onBrokenMarkdownLinks: 'throw' } },  // top-level onBrokenMarkdownLinks is deprecated in 3.10
-  themes: ['@docusaurus/theme-mermaid'],
+  themes: ['@docusaurus/theme-mermaid'],   // NOT in the classic preset — `pnpm add` it (see above)
   presets: [['classic', {
     docs: {
       path: 'docs',
@@ -198,6 +205,9 @@ const config: Config = {
     colorMode: { defaultMode: 'dark', respectPrefersColorScheme: true },
     navbar: { items: [
       { type: 'docSidebar', sidebarId: 'docs', label: 'Docs' },
+      // The next three pages do not exist until the first ingest. Docusaurus link-checks
+      // navbar targets and the navbar renders on every page, so under onBrokenLinks: 'throw'
+      // each one fails the build. Keep them commented out until step 2.10.
       { to: '/docs/developers/architecture', label: 'Architecture' },
       { to: '/docs/users/detailed-guides/mcp-server', label: 'MCP' },
       { to: '/docs/project/changelog', label: 'Changelog' },
@@ -221,6 +231,17 @@ export default config;
 ```
 
 Check: `pnpm typecheck` is clean and `pnpm start` serves an empty docs site with the landing placeholder at `http://localhost:3000/harborrag-doc-website/`.
+
+**Routes before the first stable sync.** While `versions.json` is `[]`, `current` is the only version and it is configured with `path: 'next'`, so the docs live at `/docs/next` and **`/docs` does not exist** — a landing-page link to `/docs` fails the strict build. Once a stable snapshot exists (§7, Phase 5), `lastVersion` becomes that minor line with `path: ''` and `/docs` starts resolving. Link to the version root rather than hardcoding either, so the landing page survives that switch:
+
+```tsx
+import { useLatestVersion } from '@docusaurus/plugin-content-docs/client';
+// …
+const docs = useLatestVersion(undefined);   // pluginId is a required positional
+<Link to={docs.path}>Read the docs</Link>   // /docs/next today, /docs after the first stable sync
+```
+
+`GlobalVersion.path` already carries `baseUrl`; `<Link>` handles that, which is what the theme's own version dropdown does.
 
 ## 3. Ingest script
 
@@ -253,8 +274,9 @@ Pipeline inside the script (each step is a pure function with a unit test):
 5. `frontmatter.apply(doc)` — `title` from first H1 (H1 removed from body), `sidebar_position` from TOC order, `description` from first paragraph, `custom_edit_url` to HarborRAG `main`, `source_path`, `source_sha`.
 6. `links.rewrite(doc, mapping)` — port of `markdown_links.py` rules: `../../CONTRIBUTING.md` → `/project/contributing`; `../packages/x/README.md` → `/packages/x`; `dir/README.md` → `dir`; strip `.md`; preserve `#anchors`; leave `https://` links alone. Any relative link with no target in the published set → hard error naming the source file (this is how broken source links surface).
 7. `guard.branding(docs)` — port of `check_branding.py`.
-8. `write(target)` — `rm -rf` target dir, write files, sidebar JSON, then update `versions.json` / `sync-state.json`. Write is atomic per run (build in a temp dir, then swap) so a failing step never leaves a half-written snapshot.
-9. Exit code 0 with "no changes" when the resulting tree is byte-identical to what is committed for the same `source_sha` (idempotency — the workflow uses this to skip the PR).
+8. `mdx_sanitize(doc)` — **new, because of the v4 future flags in §2.** `future.v4` turns on `mdx1CompatDisabledByDefault`, which flips `markdown.mdx1Compat` from `{comments: true, admonitions: true, headingIds: true}` to all-false, and Docusaurus 3 runs `.md` through MDX. HarborRAG's 29 markdown files have never been through an MDX pipeline, so anything MDX 1 used to paper over now fails the strict build: HTML comments (`<!-- … -->`), and any bare `{` or `<` that MDX reads as an expression or JSX tag. Strip HTML comments here — they are author notes that should not reach a public site anyway — and escape stray braces/angle brackets, naming the source file on anything ambiguous. The fallback, if a source file legitimately needs the old behaviour, is to re-enable one switch in the site config (`markdown: { mdx1Compat: { comments: true } }`) rather than to weaken the guard.
+9. `write(target)` — `rm -rf` target dir, write files, sidebar JSON, then update `versions.json` / `sync-state.json`. Write is atomic per run (build in a temp dir, then swap) so a failing step never leaves a half-written snapshot.
+10. Exit code 0 with "no changes" when the resulting tree is byte-identical to what is committed for the same `source_sha` (idempotency — the workflow uses this to skip the PR).
 
 Check: `uv run pytest` green; `uv run ingest.py --source ~/HarborRAG --channel main --dry-run` prints the file plan for 29 docs + 4 root + 8 package pages and zero unresolved links.
 
@@ -485,6 +507,7 @@ Typical loop for a docs author who wants to preview a HarborRAG docs change: edi
 | Publication guard | ingest step 1 | any deny-listed name/content in the published set |
 | Unresolved relative link | ingest step 6 | a `.md` link has no target in the published set |
 | Branding | ingest step 7 | ported `check_branding.py` rules |
+| MDX compatibility | ingest step 8 | HTML comment or unescaped `{`/`<` survives into a synced page (MDX 1 compat is off under `future.v4`) |
 | Strict build | `pr-check` | broken link/anchor, MDX compile error |
 | Bundle boundary | `pr-check` | `three` appears in a non-landing chunk |
 | Idempotency | `scripts/ingest/tests` | re-running ingest on the same sha yields a diff |
