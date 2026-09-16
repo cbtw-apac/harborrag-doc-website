@@ -12,4 +12,4 @@ This page is replaced by the first ingest in Phase 2. Do not edit it by hand —
 
 Content on this site is synced automatically from
 [`cbtw-apac/HarborRAG`](https://github.com/cbtw-apac/HarborRAG/tree/main/docs).
-First sync pending. (CI smoke)
+First sync pending.
