@@ -1,0 +1,8 @@
+# Generated/synced paths — collapsed in PR diffs, owned by the sync bot
+website/docs/**                 linguist-generated=true
+website/versioned_docs/**       linguist-generated=true
+website/versioned_sidebars/**   linguist-generated=true
+website/sidebars.ts             linguist-generated=true
+website/versions.json           linguist-generated=true
+website/sync-state.json         linguist-generated=true
+website/pnpm-lock.yaml          linguist-generated=true
