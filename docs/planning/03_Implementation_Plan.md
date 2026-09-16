@@ -6,7 +6,7 @@
 | Audience | Nguyen (driving), Huyen, Hoang; Claude as pair. |
 | Repo | `cbtw-apac/harborrag-doc-website` (public). Baseline: commit `3631cb2` "Scaffold Docusaurus site and typed sync-state boundary". |
 | Conventions | Paths are relative to the repo root. `website/` = Docusaurus. `scripts/ingest/` = Python. One commit per step unless noted. Every step ends with a **Check** that must pass before moving on. |
-| Last updated | 16 Sep 2026 (1.2 reworked against what the build actually does: mermaid theme install, `future: {v4, faster}`, navbar parking, `/docs/next` route, pnpm pin `10.33.0`; Phase 2 gains the MDX-sanitize step) |
+| Last updated | 16 Sep 2026 (Phase 1 executed through 1.5. 1.2 reworked against what the build actually does: mermaid theme install, `future: {v4, faster}`, navbar parking, `/docs/next` route, pnpm pin `10.33.0`. 1.4 actions SHA-pinned from HarborRAG. 1.5 settings recorded from the live repo. Phase 2 gains the MDX-sanitize step; Phase 3 gains the two ruleset caveats) |
 
 How to use this with Claude: say which step you are on ("I'm at 2.5") and paste the command output or the file you have. Each step lists the files it touches and what "done" looks like, so the conversation can stay narrow. Steps marked **[decision]** need a human answer before coding.
 
@@ -175,14 +175,18 @@ Key points to understand, not just paste:
 
 **Commit:** `Add pr-check and deploy workflows`
 
-### 1.5 GitHub settings (browser)
+### 1.5 GitHub settings ✅ (16 Sep 2026)
 
-| Where | Setting | Why |
-|---|---|---|
-| Settings → Pages | Build and deployment → Source: **GitHub Actions** | `deploy.yml` uploads an artifact; there is no `gh-pages` branch |
-| Settings → General → Pull Requests | Allow **squash** merging only; Allow auto-merge ✔; Automatically delete head branches ✔ | matches `merge-method: squash` in the future `sync.yml`; keeps `sync/*` branches from piling up |
-| Settings → Rulesets → "main — protected" | already imported; after 1.6 confirm the required check resolves to `pr-check` (it shows a warning until the check has reported once) | rulesets are enforced now that the repo is public |
-| Settings → Actions → General | leave "Allow GitHub Actions to create and approve pull requests" **off** | two-PAT approval design, see `02_…` §6.2 |
+Doable from the browser, but `gh` is faster and leaves the state auditable. All four need **Admin** on the repo.
+
+| Where | Setting | Why | Done via |
+|---|---|---|---|
+| Settings → Pages | Build and deployment → Source: **GitHub Actions** | `deploy.yml` uploads an artifact; there is no `gh-pages` branch. Also what creates the reserved `github-pages` environment that `deploy.yml` names — until it exists, editors flag that line as unknown | `gh api -X POST repos/cbtw-apac/harborrag-doc-website/pages -f build_type=workflow` |
+| Settings → General → Pull Requests | Allow **squash** merging only; Allow auto-merge ✔; Automatically delete head branches ✔ | matches `merge-method: squash` in the future `sync.yml`; keeps `sync/*` branches from piling up. Auto-merge must be on at repo level or the bot cannot arm it | `gh api -X PATCH repos/cbtw-apac/harborrag-doc-website -F allow_merge_commit=false -F allow_rebase_merge=false -F allow_auto_merge=true -F delete_branch_on_merge=true` |
+| Settings → Rulesets → "main — protected" | already imported and **already correct** — `required_status_checks: [{context: "pr-check"}]`, 1 approval, squash-only, deletion and force-push blocked | rulesets are enforced now that the repo is public. Admins hold a bypass, so a direct push to `main` succeeds and reports `Bypassed rule violations` — that is the ruleset working, not failing | `gh api repos/cbtw-apac/harborrag-doc-website/rulesets/23526717` to verify |
+| Settings → Actions → General | leave "Allow GitHub Actions to create and approve pull requests" **off** — verified `can_approve_pull_request_reviews: false`, `default_workflow_permissions: read` | two-PAT approval design, see `02_…` §6.2 | `gh api repos/cbtw-apac/harborrag-doc-website/actions/permissions/workflow` |
+
+Deferred: `sha_pinning_required` on Actions is `false`. Turning it on would reject `pnpm/action-setup@v4`, so enable it only after Dependabot converts that pin (see 3.1).
 
 ### 1.6 First deployment
 
@@ -378,6 +382,15 @@ Goal: pressing "Run workflow" pulls HarborRAG `main`, opens the PR, approves, au
 
 Two GitHub accounts, A ≠ B (see `02_…` §6.2 table). Create fine-grained PATs scoped to this repo only; store as `DOCS_SYNC_TOKEN` (A) and `APPROVER_PAT` (B) in Settings → Secrets → Actions. Both accounts need Write on the repo. Record expiry dates in the README runbook section. Also add `TEAMS_WEBHOOK_URL` (same value as HarborRAG uses).
 
+**Two settings in the live `main — protected` ruleset will shape how the bot behaves. Read them before debugging a stuck sync PR** (state confirmed 16 Sep 2026 via `gh api repos/cbtw-apac/harborrag-doc-website/rulesets/23526717`):
+
+| Ruleset setting | Value | Consequence for `sync.yml` |
+|---|---|---|
+| `require_extra_approval_for_unattributed_changes` | `true` | A PR containing commits GitHub cannot attribute to an account needs a **second** approval — auto-merge then stalls even with accounts A and B configured. Set `create-pull-request`'s `committer`/`author` to account A's GitHub name and its `@users.noreply.github.com` address so every sync commit is attributed. |
+| `strict_required_status_checks_policy` | `true` | The PR branch must be up to date with `main` before it can merge. Two sync PRs landing close together means the second needs a rebase. This is the usual explanation for a sync PR that is green but will not merge; `sync.yml` re-running on the same branch refreshes it. |
+
+Also still open from `02_…` §7, neither blocking Phase 3: `CODEOWNERS` (generated paths → bot, `website/src/**` → FE owner) and `.github/dependabot.yml` (npm + github-actions, weekly). Dependabot's first PR is what converts `pnpm/action-setup@v4` to a SHA, so add it before 2.0.0.
+
 ### 3.2 Workflow
 
 Copy `sync.yml` from `02_…` §6.2 with **only** `workflow_dispatch` enabled at first (comment out `repository_dispatch` and `schedule`). Pin the `peter-evans/*` actions by SHA. Keep the payload-validation step even for manual runs — it is the security boundary.
@@ -442,9 +455,10 @@ Follow `02_…` §10: set `DOCS_SITE_URL` in HarborRAG; remove `stage-pages`/`de
 |---|---|---|
 | 0 Scaffold | ✅ | `3631cb2` |
 | 1.1 Root hygiene | ✅ | `3a94a42` |
-| 1.2 Build green | ◐ | mermaid theme added, tsconfig/docs/landing/template-cleanup/pnpm pin done, `future: {v4, faster}` set; landing link still `/docs` — switch to `useLatestVersion().path` and the build is green |
-| 1.3–1.4 | ☐ | files drafted 16 Sep, not yet applied |
-| 1.5 Settings | ◐ | ruleset imported; Pages source + PR settings pending; repo public 16 Sep |
+| 1.2 Build green | ✅ | `4f954ec`; emits `index`, `docs/next`, `404` |
+| 1.3 Makefile + README | ✅ | `6b94486`; README already written at `552009d` |
+| 1.4 Workflows | ✅ | `dbcd2c8`; actions SHA-pinned from HarborRAG, `pnpm/action-setup` on `@v4`; both pass `actionlint` |
+| 1.5 Settings | ✅ | Pages `build_type: workflow`, `github-pages` env created; squash-only + auto-merge + delete-branch on; ruleset `main — protected` already required `pr-check`; `can_approve_pull_request_reviews: false` |
 | 1.6 First deploy | ☐ | |
 | 2.x Ingest | ☐ | |
 | 3 sync.yml manual | ☐ | needs accounts A/B |

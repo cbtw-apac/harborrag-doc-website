@@ -17,7 +17,9 @@ This is the implementation guide for the architecture page. It is written so tha
 | pnpm | 10.33.0, pinned via `"packageManager"` in `website/package.json` | package manager — commit `pnpm-lock.yaml`; corepack is not needed. **Never run bare `pnpm self-update`**: pnpm 12 ships as `@pnpm/exe`, whose `pnpm` bin is a placeholder shell script that an *install build script* must replace with the native binary. pnpm 10 blocks dependency build scripts by default, so the upgrade leaves an unexecutable shim and every `pnpm` command dies (on Windows it opens the "how do you want to open this file" dialog). Pass a version — `pnpm self-update 10.33.0` — or use `$env:PNPM_VERSION` with `https://get.pnpm.io/install.ps1` |
 | Python | 3.12 | ingest script (`uv`-managed, same as HarborRAG) |
 | uv | latest | Python env for `scripts/ingest` |
-| gh CLI | latest | testing `repository_dispatch`, PR automation locally |
+| gh CLI | latest | testing `repository_dispatch`, PR automation locally, and repo settings (§7) without the browser |
+| GNU Make | 4.x | the root `Makefile`. Windows: `winget install ezwinports.make`, and put `C:\Program Files\Git\bin` on PATH so make gets an `sh.exe` — without it make silently uses `cmd.exe` and every recipe fails on `grep`/`[ -d … ]` |
+| actionlint | latest | linting `.github/workflows/`. PowerShell does not expand globs for external commands — run bare `actionlint` from the repo root and it auto-discovers them |
 | A local HarborRAG checkout | any ref | local sync (`make sync-local`) |
 
 Permissions you will need at some point: **Admin** on `harborrag-doc-website` (Pages settings, branch protection, secrets) and **Admin** on `HarborRAG` for one secret (`DOCS_DISPATCH_TOKEN`) — the latter is an IT/org-owner action.
@@ -486,13 +488,24 @@ Cron mode: when neither payload nor inputs are present, a small `versions.py dis
 
 ```makefile
 # Makefile (repo root)
+# $(abspath …) matters: the recipes cd into scripts/ingest first, so a relative
+# HARBORRAG would otherwise resolve to scripts/HarborRAG. --site ../../website
+# is correctly relative to scripts/ingest and stays as-is.
+#
+# On Windows, GNU Make falls back to cmd.exe when sh.exe is not on PATH, and
+# every recipe here is POSIX. Install make (winget install ezwinports.make),
+# put "C:\Program Files\Git\bin" on PATH, and pin the shell:
+#   ifeq ($(OS),Windows_NT)
+#     SHELL := sh.exe
+#     .SHELLFLAGS := -c
+#   endif
 HARBORRAG ?= ../HarborRAG
 sync-local:        ## ingest from a local HarborRAG checkout into website/docs (Next)
-	cd scripts/ingest && uv run ingest.py --source $(HARBORRAG) --site ../../website --channel main \
-	  --source-ref local --source-sha $$(git -C $(HARBORRAG) rev-parse HEAD)
+	cd scripts/ingest && uv run ingest.py --source $(abspath $(HARBORRAG)) --site ../../website --channel main \
+	  --source-ref local --source-sha $$(git -C $(abspath $(HARBORRAG)) rev-parse HEAD)
 sync-stable:       ## e.g. make sync-stable TAG=harborrag-v2.0.0
-	cd scripts/ingest && uv run ingest.py --source $(HARBORRAG) --site ../../website --channel stable \
-	  --source-ref refs/tags/$(TAG) --source-sha $$(git -C $(HARBORRAG) rev-parse $(TAG))
+	cd scripts/ingest && uv run ingest.py --source $(abspath $(HARBORRAG)) --site ../../website --channel stable \
+	  --source-ref refs/tags/$(TAG) --source-sha $$(git -C $(abspath $(HARBORRAG)) rev-parse $(TAG))
 dev:               ; cd website && pnpm start
 build:             ; cd website && pnpm build
 check:             ; cd scripts/ingest && uv run pytest && uv run ruff check . && cd ../../website && pnpm typecheck && pnpm build
