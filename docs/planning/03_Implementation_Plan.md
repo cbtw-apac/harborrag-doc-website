@@ -459,7 +459,8 @@ Follow `02_…` §10: set `DOCS_SITE_URL` in HarborRAG; remove `stage-pages`/`de
 | 1.3 Makefile + README | ✅ | `6b94486`; README already written at `552009d` |
 | 1.4 Workflows | ✅ | `dbcd2c8`; actions SHA-pinned from HarborRAG, `pnpm/action-setup` on `@v4`; both pass `actionlint` |
 | 1.5 Settings | ✅ | Pages `build_type: workflow`, `github-pages` env created; squash-only + auto-merge + delete-branch on; ruleset `main — protected` already required `pr-check`; `can_approve_pull_request_reviews: false` |
-| 1.6 First deploy | ☐ | |
+| 1.6 First deploy | ✅ | |
+| 2.1 Project skeleton | ✅ | Created ingest project skeleton; Configured `pyproject.toml` and dependencies; Implemented CLI argument parser; Added package entrypoint (`ingest.run()`); Added placeholder `run()` implementation in `runner.py`, add `runner.py` to implement the `run()` logic |
 | 2.x Ingest | ☐ | |
 | 3 sync.yml manual | ☐ | needs accounts A/B |
 | 4 dispatch + cron | ☐ | needs HarborRAG admin for secret |
