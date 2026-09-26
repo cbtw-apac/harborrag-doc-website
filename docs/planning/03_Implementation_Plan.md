@@ -461,6 +461,7 @@ Follow `02_…` §10: set `DOCS_SITE_URL` in HarborRAG; remove `stage-pages`/`de
 | 1.5 Settings | ✅ | Pages `build_type: workflow`, `github-pages` env created; squash-only + auto-merge + delete-branch on; ruleset `main — protected` already required `pr-check`; `can_approve_pull_request_reviews: false` |
 | 1.6 First deploy | ✅ | |
 | 2.1 Project skeleton | ✅ | Created ingest project skeleton; Configured `pyproject.toml` and dependencies; Implemented CLI argument parser; Added package entrypoint (`ingest.run()`); Added placeholder `run()` implementation in `runner.py`, add `runner.py` to implement the `run()` logic |
+| 2.2 Models and CLI | ✅ | Implemented `models.py` (`Channel` as `StrEnum` instead of `Literal`, `SyncEntry`, `SyncState`, `IngestRequest`, `Doc`); `run()` now takes an `IngestRequest`; CLI: `--product-version auto` via `tomllib`, version↔channel check via `packaging`, `--source-ref`/`--source-sha` optional; added `tests/test_models.py` (JSON round-trip, nullable fields, immutability, defaults) |
 | 2.x Ingest | ☐ | |
 | 3 sync.yml manual | ☐ | needs accounts A/B |
 | 4 dispatch + cron | ☐ | needs HarborRAG admin for secret |
