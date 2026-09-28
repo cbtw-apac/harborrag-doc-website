@@ -39,8 +39,8 @@ class IngestRequest:
 
 @dataclass
 class Doc:
-    source_path: Path       # relative to HarborRAG root, e.g. docs/users/chat/README.md
-    target_path: Path       # relative to docs target dir, e.g. users/chat/README.md
+    source_path: Path  # relative to HarborRAG root, e.g. docs/users/chat/README.md
+    target_path: Path  # relative to docs target dir, e.g. users/chat/README.md
     title: str
     body: str
     frontmatter: dict[str, object]
