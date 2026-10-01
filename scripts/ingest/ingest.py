@@ -111,11 +111,7 @@ def main() -> None:
     if args.channel in {Channel.STABLE, Channel.PRERELEASE}:
         is_prerelease = Version(product_version).is_prerelease
 
-        expected_channel = (
-            Channel.PRERELEASE
-            if is_prerelease
-            else Channel.STABLE
-        )
+        expected_channel = Channel.PRERELEASE if is_prerelease else Channel.STABLE
 
         if args.channel != expected_channel:
             raise SystemExit(
