@@ -140,7 +140,7 @@ def _truncate(text: str) -> str:
     if len(text) <= DESCRIPTION_MAX:
         return text
 
-    limit = DESCRIPTION_MAX - 1  
+    limit = DESCRIPTION_MAX - 1
     space = text.rfind(" ", 0, limit + 1)
     cut = text[:space] if space > 0 else text[:limit]
 
