@@ -13,9 +13,9 @@ class Channel(StrEnum):
 class SyncEntry:
     label: str
     channel: Channel
-    source_ref: str | None
-    source_sha: str | None
-    synced_at: str | None  # ISO-8601 UTC
+    source_ref: str | None = None
+    source_sha: str | None = None
+    synced_at: str | None = None # ISO-8601 UTC
 
 
 @dataclass(frozen=True)
