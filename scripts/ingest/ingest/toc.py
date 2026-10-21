@@ -189,6 +189,31 @@ def load_toc(
     return parse_toc(text, pages=pages, bridge=bridge)
 
 
+def first_doc_id(toc: list[Category]) -> str:
+    """Return the id of the first top-level ``DocItem`` in sidebar order.
+
+    ``LinkItem`` entries are skipped (they cannot have children, so no need to
+    look deeper). Raises ``TocError`` when the TOC has no doc.
+    """
+    for category in toc:
+        for item in category.items:
+            if isinstance(item, DocItem):
+                return item.id
+
+    raise TocError(f"{TOC_FILE}: no doc entry")
+
+
+def toc_link_mapping(toc: list[Category]) -> dict[Path, str]:
+    """Return the ``links.apply_links`` mapping entry for links to ``docs/TOC.md``.
+
+    TOC.md is not a page (the sidebar is the index), so a link to it goes to the
+    first doc of the sidebar: ``{Path("docs/TOC.md"): "getting-started/README.md"}``.
+    The value is a docs-dir-relative file path, so ``links.site_link`` makes it a
+    relative ``.md`` link that Docusaurus resolves within the same version.
+    """
+    return {TOC_FILE: f"{first_doc_id(toc)}.md"}
+
+
 # --------------------------------------------------------------------------- output model
 
 

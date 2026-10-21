@@ -54,7 +54,8 @@ def test_no_h1_falls_back_to_filename():
 
 def test_fallback_title():
     assert fallback_title(PurePosixPath("docs/getting-started/quick_start.md")) == "Quick Start"
-    assert fallback_title(PurePosixPath("README.md")) == "Readme"
+    assert fallback_title(PurePosixPath("README.md")) == "Overview"
+    assert fallback_title(PurePosixPath("docs/users/chat/README.md")) == "Chat"
 
 
 def test_last_reviewed_footer_is_preserved():
@@ -70,8 +71,9 @@ def test_last_reviewed_footer_is_preserved():
 
 def test_description_first_paragraph_flattened():
     body = "[![badge](x.svg)](y)\n\nHarborRAG is a **RAG** [engine](e.md) for\n`docs`.\n\nSecond.\n"
-
+    body_2 = "<p>x</p>\n\n---\n\n> note\n\nReal prose.\n"
     assert extract_description(body) == "HarborRAG is a RAG engine for docs."
+    assert extract_description(body_2) == "Real prose."
 
 
 def test_description_truncated_to_160():

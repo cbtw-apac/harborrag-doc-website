@@ -11,11 +11,13 @@ from ingest.toc import (
     LinkItem,
     TocError,
     doc_id,
+    first_doc_id,
     load_toc,
     parse_toc,
     render_sidebars_ts,
     render_versioned_sidebars,
     to_sidebar_items,
+    toc_link_mapping,
     write_sidebars_ts,
     write_versioned_sidebars,
 )
@@ -268,3 +270,27 @@ def test_write_versioned_sidebars_rejects_non_minor_version(tmp_path, version):
     with pytest.raises(ValueError, match="MAJOR.MINOR"):
         write_versioned_sidebars(tmp_path, version, [])
     assert not (tmp_path / "versioned_sidebars").exists()
+
+
+# --------------------------------------------------------------------------- TOC.md links
+
+
+def test_first_doc_id_skips_leading_links():
+    toc = [
+        Category(label="Empty"),
+        Category(label="Links", items=[LinkItem(label="License", href=EXTERNAL_LINKS["LICENSE"])]),
+        *SMALL_TOC,
+    ]
+
+    assert first_doc_id(toc) == "users/README"
+
+
+def test_first_doc_id_without_docs_is_error():
+    with pytest.raises(TocError, match="no doc entry"):
+        first_doc_id([SMALL_TOC[1]])
+
+
+def test_toc_link_mapping_points_at_first_page_of_fixture():
+    toc = load_toc(FIXTURE, bridge=BRIDGE)
+
+    assert toc_link_mapping(toc) == {Path("docs/TOC.md"): "getting-started/README.md"}

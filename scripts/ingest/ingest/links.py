@@ -10,8 +10,15 @@ from ingest.frontmatter import FENCE_RE
 from ingest.models import Doc
 
 REPOSITORY_URL = "https://github.com/cbtw-apac/HarborRAG"
+#: Serves the file bytes, so ``<img>`` can render it (a ``blob`` URL is an HTML page).
+RAW_URL = "https://raw.githubusercontent.com/cbtw-apac/HarborRAG"
 #: ``[text](target)`` and ``![alt](target)``, optional ``"title"`` kept in the suffix.
 LINK_RE = re.compile(r'(?P<prefix>!?\[[^\]]*\]\()(?P<target>[^)\s]+)(?P<suffix>(?:\s+"[^"]*")?\))')
+#: ``src="..."`` / ``srcset="..."`` in raw HTML (``<img>``, ``<source>``); not ``data-src``.
+HTML_ATTR_RE = re.compile(
+    r"""(?<![\w-])(?P<attr>src|srcset)=(?P<quote>["'])(?P<value>[^"']*)(?P=quote)""",
+    re.IGNORECASE,
+)
 #: ``https:``, ``mailto:`` ... and protocol-relative ``//host``.
 EXTERNAL_RE = re.compile(r"^(?:[a-z][a-z0-9+.-]*:|//)", re.IGNORECASE)
 
@@ -103,12 +110,21 @@ def github_url(resolved: PurePosixPath, *, is_dir: bool) -> str:
     return f"{REPOSITORY_URL}/{view}/main/{quote(resolved.as_posix(), safe='/')}"
 
 
+def raw_url(resolved: PurePosixPath) -> str:
+    """Return the raw-content URL of a repository file, for images.
+
+    ``website/assets/logos/logo.png`` -> ``RAW_URL/main/website/assets/logos/logo.png``
+    """
+    return f"{RAW_URL}/main/{quote(resolved.as_posix(), safe='/')}"
+
+
 def rewrite_link(
     target: str,
     *,
     doc: Doc,
     mapping: dict[Path, str],
     source_root: Path,
+    image: bool = False,
 ) -> str | None:
     """Return the rewritten link, or ``None`` when it is broken.
 
@@ -117,10 +133,13 @@ def rewrite_link(
     1. not ``is_rewritable``                       -> ``target`` unchanged
     2. ``resolve`` returns ``None``                -> broken
     3. resolved path in ``mapping``                -> ``site_link(...)`` + anchor
-    4. resolved path exists in ``source_root`` and
+    4. ``image`` and resolved path is a file in
+       ``source_root`` (``docs/`` included)        -> ``raw_url(...)``
+       (the site does not copy assets, so the image is served from GitHub)
+    5. resolved path exists in ``source_root`` and
        is **outside** ``docs/``                    -> ``github_url(...)`` + anchor
        (config/*.yaml, clients/typescript, unpublished package READMEs)
-    5. anything else                               -> broken
+    6. anything else                               -> broken
        (missing file, or a docs/ page that is not published)
     """
     if not is_rewritable(target):
@@ -139,6 +158,9 @@ def rewrite_link(
         return site_link(value, from_target=PurePosixPath(doc.target_path.as_posix())) + anchor
 
     full = source_root / resolved
+    if image and full.is_file():
+        return raw_url(resolved)
+
     if resolved.parts and resolved.parts[0] != "docs" and full.exists():
         return github_url(resolved, is_dir=full.is_dir()) + anchor
 
@@ -146,6 +168,29 @@ def rewrite_link(
 
 
 # --------------------------------------------------------------------------- body
+
+
+def _rewrite_srcset(value: str, rewrite) -> str | None:
+    """Rewrite each URL of a ``srcset``, keeping its descriptor; ``None`` if any is broken.
+
+    ``"a.png, b.png 2x"`` -> ``"<raw a.png>, <raw b.png> 2x"``
+    Every broken URL is reported by ``rewrite`` before ``None`` is returned.
+    """
+    candidates = []
+    ok = True
+    for candidate in value.split(","):
+        url, _, descriptor = candidate.strip().partition(" ")
+        if not url:
+            continue
+
+        new_url = rewrite(url, image=True)
+        if new_url is None:
+            ok = False
+            continue
+
+        candidates.append(f"{new_url} {descriptor.strip()}".rstrip())
+
+    return ", ".join(candidates) if ok else None
 
 
 def rewrite_links(
@@ -156,18 +201,38 @@ def rewrite_links(
 ) -> list[BrokenLink]:
     """Rewrite every link in ``doc.body`` in place; return the broken ones.
 
+    Covers Markdown links/images and the ``src`` / ``srcset`` of raw HTML
+    (``<img>``, ``<picture><source>``), whose values are always images.
     Lines inside fenced code blocks are left alone (same fence tracking as
     ``frontmatter._paragraphs``). A broken link is kept unchanged in the body.
     """
     broken: list[BrokenLink] = []
+    source_path = PurePosixPath(doc.source_path.as_posix())
+
+    def _rewrite(target: str, *, image: bool) -> str | None:
+        new_link = rewrite_link(
+            target, doc=doc, mapping=mapping, source_root=source_root, image=image
+        )
+        if new_link is None:
+            broken.append(BrokenLink(source_path, target))
+        return new_link
 
     def _sub(match):
-        new_link = rewrite_link(match["target"], doc=doc, mapping=mapping, source_root=source_root)
+        new_link = _rewrite(match["target"], image="![" in match["prefix"])
         if new_link is None:
-            broken.append(BrokenLink(PurePosixPath(doc.source_path.as_posix()), match["target"]))
             return match[0]
+        return match["prefix"] + new_link + match["suffix"]
+
+    def _sub_attr(match):
+        value = match["value"]
+        if match["attr"].lower() == "srcset":
+            new_value = _rewrite_srcset(value, _rewrite)
         else:
-            return match["prefix"] + new_link + match["suffix"]
+            new_value = _rewrite(value, image=True) if value else value
+
+        if new_value is None:
+            return match[0]
+        return f"{match['attr']}={match['quote']}{new_value}{match['quote']}"
 
     doc_lines = doc.body.splitlines(keepends=True)
     new_lines = []
@@ -178,6 +243,7 @@ def rewrite_links(
 
         if not in_fence:
             line = LINK_RE.sub(_sub, line)
+            line = HTML_ATTR_RE.sub(_sub_attr, line)
 
         new_lines.append(line)
 

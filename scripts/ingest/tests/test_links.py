@@ -7,6 +7,7 @@ from ingest.links import (
     BrokenLinksError,
     apply_links,
     github_url,
+    raw_url,
     resolve,
     rewrite_link,
     rewrite_links,
@@ -211,8 +212,133 @@ def test_apply_links_reports_every_broken_link():
     assert "docs/users/README.md: missing.md" in str(exc.value)
 
 
+# --------------------------------------------------------------------------- images
+
+
+def _root_doc(body: str) -> Doc:
+    """Root README bridged to project/overview.md (where the logo <picture> lives)."""
+    return Doc(
+        source_path=Path("README.md"),
+        target_path=Path("project/overview.md"),
+        title="",
+        body=body,
+        frontmatter={},
+    )
+
+
+def _logo_root(tmp_path: Path) -> Path:
+    logos = tmp_path / "website/assets/logos"
+    logos.mkdir(parents=True)
+    (logos / "logo-dark.png").write_text("")
+    (logos / "logo-light.png").write_text("")
+    return tmp_path
+
+
+LOGO_DARK = raw_url(PurePosixPath("website/assets/logos/logo-dark.png"))
+LOGO_LIGHT = raw_url(PurePosixPath("website/assets/logos/logo-light.png"))
+
+
+def test_raw_url():
+    assert raw_url(PurePosixPath("website/assets/logos/a b.png")) == (
+        "https://raw.githubusercontent.com/cbtw-apac/HarborRAG/main/website/assets/logos/a%20b.png"
+    )
+
+
+def test_markdown_image_outside_docs_uses_raw_url(tmp_path):
+    doc = _root_doc("![logo](website/assets/logos/logo-light.png)\n")
+
+    assert rewrite_links(doc, mapping=MAPPING, source_root=_logo_root(tmp_path)) == []
+    assert doc.body == f"![logo]({LOGO_LIGHT})\n"
+
+
+def test_markdown_image_inside_docs_uses_raw_url(tmp_path):
+    (tmp_path / "docs/users").mkdir(parents=True)
+    (tmp_path / "docs/users/image.png").write_text("")
+    doc = _doc("docs/users/guide.md", "![shot](image.png)\n")
+
+    assert rewrite_links(doc, mapping=MAPPING, source_root=tmp_path) == []
+    assert doc.body == f"![shot]({raw_url(PurePosixPath('docs/users/image.png'))})\n"
+
+
+def test_badge_inside_link_is_an_image(tmp_path):
+    doc = _root_doc("[![b](website/assets/logos/logo-dark.png)](https://x.example)\n")
+
+    rewrite_links(doc, mapping=MAPPING, source_root=_logo_root(tmp_path))
+
+    assert doc.body == f"[![b]({LOGO_DARK})](https://x.example)\n"
+
+
+def test_html_picture_src_and_srcset_use_raw_url(tmp_path):
+    body = (
+        "<picture>\n"
+        '  <source media="(prefers-color-scheme: dark)" srcset="website/assets/logos/logo-dark.png">\n'
+        '  <img src="website/assets/logos/logo-light.png" alt="HarborRAG" width="360">\n'
+        "</picture>\n"
+    )
+    doc = _root_doc(body)
+
+    assert rewrite_links(doc, mapping=MAPPING, source_root=_logo_root(tmp_path)) == []
+    assert doc.body == (
+        "<picture>\n"
+        f'  <source media="(prefers-color-scheme: dark)" srcset="{LOGO_DARK}">\n'
+        f'  <img src="{LOGO_LIGHT}" alt="HarborRAG" width="360">\n'
+        "</picture>\n"
+    )
+
+
+def test_html_srcset_keeps_descriptors(tmp_path):
+    doc = _root_doc(
+        "<img srcset='website/assets/logos/logo-light.png, "
+        "website/assets/logos/logo-dark.png 2x'>\n"
+    )
+
+    rewrite_links(doc, mapping=MAPPING, source_root=_logo_root(tmp_path))
+
+    assert doc.body == f"<img srcset='{LOGO_LIGHT}, {LOGO_DARK} 2x'>\n"
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        '<img src="https://img.shields.io/badge/x.svg">\n',  # external
+        '<img src="data:image/png;base64,AAAA">\n',  # data URI
+        '<img data-src="website/assets/logos/missing.png">\n',  # not src
+        '```html\n<img src="website/assets/logos/missing.png">\n```\n',  # code fence
+    ],
+)
+def test_html_src_left_alone(tmp_path, line):
+    doc = _root_doc(line)
+
+    assert rewrite_links(doc, mapping=MAPPING, source_root=_logo_root(tmp_path)) == []
+    assert doc.body == line
+
+
+def test_html_broken_image_is_reported_and_kept(tmp_path):
+    body = '<img src="website/assets/logos/missing.png">\n'
+    doc = _root_doc(body)
+
+    assert rewrite_links(doc, mapping=MAPPING, source_root=_logo_root(tmp_path)) == [
+        BrokenLink(PurePosixPath("README.md"), "website/assets/logos/missing.png")
+    ]
+    assert doc.body == body
+
+
 def test_apply_links_passes_when_all_links_resolve():
     doc = _doc("docs/developers/README.md", "[c](../../CONTRIBUTING.md)\n")
     apply_links([doc], mapping=MAPPING, source_root=NO_ROOT)
 
     assert doc.body == "[c](/docs/project/contributing)\n"
+
+
+def test_link_to_toc_goes_to_first_sidebar_page():
+    mapping = {**MAPPING, Path("docs/TOC.md"): "getting-started/README.md"}
+    doc = Doc(
+        source_path=Path("README.md"),
+        target_path=Path("project/overview.md"),
+        title="",
+        body="[Documentation index](docs/TOC.md)\n",
+        frontmatter={},
+    )
+
+    assert rewrite_links(doc, mapping=mapping, source_root=NO_ROOT) == []
+    assert doc.body == "[Documentation index](../getting-started/README.md)\n"

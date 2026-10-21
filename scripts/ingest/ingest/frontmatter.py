@@ -27,6 +27,7 @@ NON_PROSE_PREFIXES = (
     "<",
     "![",
     "[![",
+    "---",
     "Last reviewed:",
 )
 
@@ -58,10 +59,10 @@ def fallback_title(source_path: PurePosixPath) -> str:
     (stem, ``-``/``_`` -> space, title-cased).
 
     ``README.md`` uses its parent dir name (``users/chat/README.md`` -> ``Chat``);
-    the root ``README.md`` has none and keeps ``Readme``.
+    the root ``README.md`` has none and falls back to ``Overview``.
     """
-    if source_path.stem.lower() == "readme" and source_path.parent.name:
-        name = source_path.parent.name
+    if source_path.stem.lower() == "readme":
+        name = source_path.parent.name or "Overview"
     else:
         name = source_path.stem
 
