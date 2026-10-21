@@ -3,6 +3,7 @@ from pathlib import Path, PurePosixPath
 
 import pytest
 
+from ingest.bridge import bridge_ids
 from ingest.collect import collect
 from ingest.toc import (
     EXTERNAL_LINKS,
@@ -36,6 +37,7 @@ BRIDGE = {
             "harborrag-runtime",
             "harborrag-app",
             "harborrag-mcp-server",
+            "demo",
         )
     },
     "CONTRIBUTING.md": "project/contributing",
@@ -100,19 +102,18 @@ Last reviewed: 2026-08-27
 
 
 def test_fixture_toc_categories_and_nesting():
-    toc = load_toc(FIXTURE, bridge=BRIDGE)
+    toc = load_toc(FIXTURE, pages=collect(FIXTURE), bridge=bridge_ids(collect(FIXTURE)))
 
     assert [c.label for c in toc] == [
         "Getting started",
         "User guides",
-        "Developer guides",
         "Package reference",
         "Project",
     ]
-    assert len(toc[1].items[1].items) == 4
-    assert toc[1].items[1].id == "users/chat/README"
-    assert toc[3].items[0].id == "packages/harborrag"
-    assert isinstance(toc[4].items[-1], LinkItem)
+    assert toc[1].items[0].id == "users/guide"
+    assert toc[2].items[0].id == "packages/demo"
+    assert toc[3].items[0].id == "project/contributing"
+    assert isinstance(toc[3].items[-1], LinkItem)
 
 
 def test_unknown_target_is_hard_error_naming_the_line():
