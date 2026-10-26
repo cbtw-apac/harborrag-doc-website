@@ -1,0 +1,4 @@
+# Publication deny-list: one regex per line, case-insensitive.
+# Lines starting with # are comments.
+HARBORRAG_ARCHITECTURE\.md
+harborrag-architecture\.html

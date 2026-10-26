@@ -1,4 +1,10 @@
 {
-  "current": { "label": "Next", "channel": "main", "source_ref": null, "source_sha": null, "synced_at": null },
+  "current": {
+    "label": "Next",
+    "channel": "main",
+    "source_ref": "local",
+    "source_sha": "217521ac92f0d1f570da22f96551954502e74c1c",
+    "synced_at": "2026-10-26T04:58:02Z"
+  },
   "versions": {}
 }
