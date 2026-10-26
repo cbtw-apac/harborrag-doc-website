@@ -285,6 +285,7 @@ def test_failure_while_staging_leaves_target_untouched(site, monkeypatch):
     assert tree_files(site) == before
     assert staging_leftovers(site) == []
 
+
 def test_run_twice_on_fixture_has_no_diff(site):
     """Spec: running twice on the fixture yields no diff the second time."""
     assert ingest.run(make_request(site)) is WriteOutcome.WRITTEN

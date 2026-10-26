@@ -15,7 +15,7 @@ class SyncEntry:
     channel: Channel
     source_ref: str | None = None
     source_sha: str | None = None
-    synced_at: str | None = None # ISO-8601 UTC
+    synced_at: str | None = None  # ISO-8601 UTC
 
 
 @dataclass(frozen=True)

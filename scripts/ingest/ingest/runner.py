@@ -8,6 +8,7 @@ from ingest.bridge import bridge_docs, bridge_ids, bridge_mapping
 from ingest.collect import collect
 from ingest.frontmatter import apply_frontmatter, render, sidebar_positions
 from ingest.links import apply_links
+from ingest.mdx import mdx_sanitize
 from ingest.models import Doc, IngestRequest
 from ingest.toc import load_toc, render_sidebars_ts, toc_link_mapping
 
@@ -50,6 +51,8 @@ def build_plan(request: IngestRequest) -> writer.WritePlan:
     """
     source = request.source
     files = collect(source)
+    if not files:
+        raise ValueError(f"{source}: nothing to publish (is this a HarborRAG checkout?)")
 
     guard.publication(source, files, guard.load_deny_patterns(DENY_FILE))
 
@@ -60,6 +63,8 @@ def build_plan(request: IngestRequest) -> writer.WritePlan:
     toc = load_toc(source, pages=pages, bridge=bridge_ids(files))
 
     apply_links(docs, mapping=link_mapping(files, toc_link_mapping(toc)), source_root=source)
+    for doc in docs:
+        mdx_sanitize(doc)
 
     positions = sidebar_positions(toc)
     for doc in docs:
