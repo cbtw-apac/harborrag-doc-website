@@ -1,16 +1,14 @@
 ---
 title: harborrag-adapters
 description: Provider adapters for HarborRAG.
-sidebar_position: 31
 custom_edit_url: https://github.com/cbtw-apac/HarborRAG/edit/main/packages/harborrag-adapters/README.md
 source_path: packages/harborrag-adapters/README.md
-source_sha: 217521ac92f0d1f570da22f96551954502e74c1c
 ---
 
 | | |
 | --- | --- |
 | Package | `harborrag-adapters` |
-| Version | `2.0.0a1` |
+| Version | `2.0.0a2` |
 | Description | Provider adapters for HarborRAG. |
 | PyPI | [harborrag-adapters](https://pypi.org/project/harborrag-adapters/) |
 

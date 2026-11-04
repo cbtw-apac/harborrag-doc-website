@@ -2,10 +2,8 @@
 title: Release Process
 description: This page is for maintainers publishing HarborRAG packages to PyPI. Contributors
   do not need it - see Contributing for the pull-request path.
-sidebar_position: 27
 custom_edit_url: https://github.com/cbtw-apac/HarborRAG/edit/main/docs/developers/release-process.md
 source_path: docs/developers/release-process.md
-source_sha: 217521ac92f0d1f570da22f96551954502e74c1c
 ---
 
 This page is for maintainers publishing HarborRAG packages to PyPI. Contributors do not
@@ -30,8 +28,8 @@ uv run make coverage
 
 Add the new version section to [`CHANGELOG.md`](../project/changelog.md) first, then run the
 preparation command. It changes package versions, internal dependency pins, the TypeScript
-client version, classifiers when requested, and `uv.lock`. It never commits, pushes, tags,
-or publishes:
+client version in `package.json` and `package-lock.json`, classifiers when requested, and
+`uv.lock`. It never commits, pushes, tags, or publishes:
 
 ```bash
 uv run python release.py --dry-run --bump patch --verbose

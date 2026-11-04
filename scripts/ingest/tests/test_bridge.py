@@ -170,10 +170,7 @@ def test_bridge_docs_from_fixture():
 def test_bridged_doc_goes_through_frontmatter():
     doc = apply_frontmatter(
         bridge_doc(FIXTURE, Path("packages/demo/README.md")),
-        positions={"packages/demo": 3},
-        source_sha="abc",
     )
 
-    assert doc.frontmatter["sidebar_position"] == 3
     assert doc.frontmatter["source_path"] == "packages/demo/README.md"
     assert not doc.frontmatter["description"].startswith("|")

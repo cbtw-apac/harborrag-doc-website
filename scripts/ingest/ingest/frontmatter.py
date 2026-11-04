@@ -6,12 +6,9 @@ from pathlib import PurePosixPath
 import yaml
 
 from ingest.models import Doc
-from ingest.toc import Category, DocItem, TocItem, doc_id
 
 EDIT_URL_BASE = "https://github.com/cbtw-apac/HarborRAG/edit/main/"
 DESCRIPTION_MAX = 160
-#: Docusaurus class put on docs that are not in TOC.md, hidden by custom.css.
-HIDDEN_SIDEBAR_CLASS = "hidden-from-sidebar"
 H1_RE = re.compile(r"^#\s+(?P<title>.+?)(?:\s+#+)?\s*$")
 FENCE_RE = re.compile(r"^\s*(```|~~~)")
 ORDERED_ITEM_RE = re.compile(r"^\d+\.\s")
@@ -174,37 +171,6 @@ def extract_description(body: str) -> str | None:
     return None
 
 
-# --------------------------------------------------------------------------- sidebar
-
-
-def _walk(items: list[TocItem]) -> list[DocItem]:
-    """Flatten ``items`` depth-first, keeping only ``DocItem``s (helper for sidebar_positions)."""
-    docs: list[DocItem] = []
-
-    for item in items:
-        if isinstance(item, DocItem):
-            docs.append(item)
-            docs.extend(_walk(item.items))
-
-    return docs
-
-
-def sidebar_positions(toc: list[Category]) -> dict[str, int]:
-    """Return ``{doc id: sidebar_position}`` in TOC.md reading order.
-
-    Positions are 1-based and run across the whole TOC (categories and nested
-    items flattened depth-first), so they are unique. ``LinkItem``s take no
-    position. A doc listed twice keeps its first position.
-    """
-    positions: dict[str, int] = {}
-
-    for category in toc:
-        for item in _walk(category.items):
-            positions.setdefault(item.id, len(positions) + 1)
-
-    return positions
-
-
 # --------------------------------------------------------------------------- assemble
 
 
@@ -212,54 +178,36 @@ def build_frontmatter(
     *,
     title: str,
     description: str | None,
-    position: int | None,
     source_path: PurePosixPath,
-    source_sha: str,
 ) -> dict[str, object]:
     """Return the frontmatter dict, keys in this order (``sort_keys=False`` keeps it)::
 
     title
     description          # omitted when None
-    sidebar_position     # when the doc is in TOC.md
-    sidebar_class_name   # HIDDEN_SIDEBAR_CLASS, when it is not
     custom_edit_url      # EDIT_URL_BASE + source_path
     source_path          # custom field, read by the footer component (Phase 6)
-    source_sha           # custom field, read by the footer component (Phase 6)
-
-    Exactly one of ``sidebar_position`` / ``sidebar_class_name`` is present.
     """
     fm: dict[str, object] = {"title": title}
 
     if description is not None:
         fm["description"] = description
 
-    if position is not None:
-        fm["sidebar_position"] = position
-    else:
-        fm["sidebar_class_name"] = HIDDEN_SIDEBAR_CLASS
-
     fm["custom_edit_url"] = EDIT_URL_BASE + source_path.as_posix()
     fm["source_path"] = source_path.as_posix()  # str: safe_dump cannot serialise Path
-    fm["source_sha"] = source_sha
 
     return fm
 
 
-def apply_frontmatter(doc: Doc, *, positions: dict[str, int], source_sha: str) -> Doc:
+def apply_frontmatter(doc: Doc) -> Doc:
     """Fill ``doc.title``, ``doc.body`` (H1 removed) and ``doc.frontmatter``; return ``doc``.
 
-    The doc's sidebar id is ``doc_id(doc.target_path)``; its position is looked
-    up in ``positions`` (from ``sidebar_positions``).
+    The doc's sidebar id is ``doc_id(doc.target_path)``;
     """
     source_path = PurePosixPath(doc.source_path.as_posix())
     doc.title, doc.body = extract_title(doc.body, source_path=source_path)
 
     doc.frontmatter = build_frontmatter(
-        title=doc.title,
-        description=extract_description(doc.body),
-        position=positions.get(doc_id(PurePosixPath(doc.target_path.as_posix()))),
-        source_path=source_path,
-        source_sha=source_sha,
+        title=doc.title, description=extract_description(doc.body), source_path=source_path
     )
 
     return doc

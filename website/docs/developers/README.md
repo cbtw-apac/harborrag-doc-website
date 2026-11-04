@@ -1,12 +1,11 @@
 ---
 title: Developer Documentation
 description: Before opening a pull request, run the quality commands in CONTRIBUTING.md.
-sidebar_position: 19
 custom_edit_url: https://github.com/cbtw-apac/HarborRAG/edit/main/docs/developers/README.md
 source_path: docs/developers/README.md
-source_sha: 217521ac92f0d1f570da22f96551954502e74c1c
 ---
 
+- [Running HarborRAG from a checkout](checkout-quick-start.md) - clone, sync, the service-free check, and the full Temporal stack.
 - [Architecture](architecture/README.md) - package ownership, dependency direction, and implemented boundaries.
   - [Data lifecycle](architecture/data-lifecycle.md) - authority, artifacts, projections, publication, and retrieval.
   - [Runtime reliability](architecture/runtime-reliability.md) - Temporal boundaries, replay, retries, and safe failure behavior.

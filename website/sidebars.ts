@@ -39,14 +39,44 @@ export default {
           "label": "User Documentation"
         },
         {
-          "type": "doc",
-          "id": "users/chat/README",
-          "label": "Chat"
+          "type": "category",
+          "label": "Chat",
+          "link": {
+            "type": "doc",
+            "id": "users/chat/README"
+          },
+          "items": [
+            {
+              "type": "doc",
+              "id": "users/chat/models",
+              "label": "Chat Models"
+            },
+            {
+              "type": "doc",
+              "id": "users/chat/memory",
+              "label": "Conversation Memory"
+            },
+            {
+              "type": "doc",
+              "id": "users/chat/agent",
+              "label": "Agent"
+            },
+            {
+              "type": "doc",
+              "id": "users/chat/limits",
+              "label": "Limits and Accounting"
+            }
+          ]
         },
         {
           "type": "doc",
           "id": "users/ingestion-modes",
           "label": "Ingestion Modes"
+        },
+        {
+          "type": "doc",
+          "id": "users/scheduled-ingestion",
+          "label": "Scheduled Ingestion"
         },
         {
           "type": "doc",
@@ -112,6 +142,11 @@ export default {
           "type": "doc",
           "id": "users/troubleshooting/README",
           "label": "Troubleshooting"
+        },
+        {
+          "type": "doc",
+          "id": "users/upgrading",
+          "label": "Upgrading"
         }
       ]
     },
@@ -120,9 +155,19 @@ export default {
       "label": "Developer guides",
       "items": [
         {
-          "type": "doc",
-          "id": "developers/README",
-          "label": "Developer Documentation"
+          "type": "category",
+          "label": "Developer Documentation",
+          "link": {
+            "type": "doc",
+            "id": "developers/README"
+          },
+          "items": [
+            {
+              "type": "doc",
+              "id": "developers/checkout-quick-start",
+              "label": "Running HarborRAG from a checkout"
+            }
+          ]
         },
         {
           "type": "category",

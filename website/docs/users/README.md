@@ -1,15 +1,13 @@
 ---
 title: User Documentation
-description: New here? Start with the Quick Start - Path A takes five minutes and
-  needs no Docker or credentials.
-sidebar_position: 5
+description: New here? Start with the Quick Start - pip install, harborrag init, and
+  your first answer in about ten minutes.
 custom_edit_url: https://github.com/cbtw-apac/HarborRAG/edit/main/docs/users/README.md
 source_path: docs/users/README.md
-source_sha: 217521ac92f0d1f570da22f96551954502e74c1c
 ---
 
-New here? Start with the [Quick Start](../getting-started/quick-start.md) - Path A takes
-five minutes and needs no Docker or credentials.
+New here? Start with the [Quick Start](../getting-started/quick-start.md) -
+`pip install`, `harborrag init`, and your first answer in about ten minutes.
 
 ## By task
 
@@ -22,6 +20,7 @@ five minutes and needs no Docker or credentials.
 | Connect an IDE or agent | [MCP Tools](detailed-guides/mcp-server/README.md) |
 | Understand re-ingestion and retries | [Ingestion Modes](ingestion-modes.md) |
 | Fix something that broke | [Troubleshooting](troubleshooting/README.md) |
+| Upgrade an existing deployment | [Upgrading](upgrading.md) |
 
 ## Configuration in detail
 
@@ -35,9 +34,9 @@ five minutes and needs no Docker or credentials.
 
 | Surface | What it does |
 | --- | --- |
-| CLI | `doctor`, `chat`, `retrieve`, and the `ingest` subgroup, all Temporal-backed |
+| CLI | `init`, `doctor`, `chat`, `retrieve`, and the `ingest` subgroup: `ingest run` executes in-process, the other `ingest` commands drive Temporal |
 | HTTP API | `/v1/...` public contract - ingestion, retrieval, chat, agent, admin; `/api/v1/...` operational routes |
-| MCP | four read-only retrieval tools over stdio or bearer-authenticated loopback HTTP, plus a browser playground |
+| MCP | nine read-only evidence, source, and graph tools over stdio or bearer-authenticated loopback HTTP, plus a browser playground |
 
 The MCP server implements stdio plus bearer-authenticated, loopback-only Streamable HTTP.
 TLS, remote exposure, and production token verification remain deployment-owned. The

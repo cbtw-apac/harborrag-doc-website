@@ -293,14 +293,6 @@ def render_sidebars_ts(toc: list[Category]) -> str:
     )
 
 
-def write_sidebars_ts(site: Path, toc: list[Category]) -> Path:
-    """Write ``site / sidebars.ts`` and return its path."""
-    path = site / "sidebars.ts"
-    path.write_text(render_sidebars_ts(toc), encoding="utf-8")
-
-    return path
-
-
 def render_versioned_sidebars(toc: list[Category]) -> str:
     """Render ``versioned_sidebars/version-X.Y-sidebars.json`` content."""
     return json.dumps({"docs": to_sidebar_items(toc)}, indent=2, ensure_ascii=False) + "\n"

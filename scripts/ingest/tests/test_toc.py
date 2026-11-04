@@ -19,7 +19,6 @@ from ingest.toc import (
     render_versioned_sidebars,
     to_sidebar_items,
     toc_link_mapping,
-    write_sidebars_ts,
     write_versioned_sidebars,
 )
 
@@ -236,16 +235,6 @@ def test_rejected_targets_are_error(target):
     text = f"## User guides\n- [User Documentation]({target})\n"
     with pytest.raises(TocError, match=r"docs/TOC\.md:2: unknown link target"):
         parse_toc(text, bridge=BRIDGE)
-
-
-def test_write_sidebars_ts_writes_file_and_returns_path(tmp_path):
-    path = write_sidebars_ts(
-        tmp_path, [Category("User guides", [DocItem("User Documentation", "users/README")])]
-    )
-    assert path == tmp_path / "sidebars.ts"
-    assert path.read_text(encoding="utf-8") == render_sidebars_ts(
-        [Category("User guides", [DocItem("User Documentation", "users/README")])]
-    )
 
 
 def test_render_versioned_sidebars_is_docs_json_matching_sidebars_ts():

@@ -2,10 +2,8 @@
 title: Runtime Reliability
 description: HarborRAG offers direct ingestion for local and embedded use and Temporal-backed
   ingestion for durable distributed execution. Both paths call the same engine…
-sidebar_position: 22
 custom_edit_url: https://github.com/cbtw-apac/HarborRAG/edit/main/docs/developers/architecture/runtime-reliability.md
 source_path: docs/developers/architecture/runtime-reliability.md
-source_sha: 217521ac92f0d1f570da22f96551954502e74c1c
 ---
 
 HarborRAG offers direct ingestion for local and embedded use and Temporal-backed ingestion for

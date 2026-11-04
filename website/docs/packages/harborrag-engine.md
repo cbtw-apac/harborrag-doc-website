@@ -1,16 +1,14 @@
 ---
 title: harborrag-engine
 description: Owns RAG orchestration using core contracts and adapter implementations.
-sidebar_position: 32
 custom_edit_url: https://github.com/cbtw-apac/HarborRAG/edit/main/packages/harborrag-engine/README.md
 source_path: packages/harborrag-engine/README.md
-source_sha: 217521ac92f0d1f570da22f96551954502e74c1c
 ---
 
 | | |
 | --- | --- |
 | Package | `harborrag-engine` |
-| Version | `2.0.0a1` |
+| Version | `2.0.0a2` |
 | Description | Ingestion and retrieval orchestration for HarborRAG. |
 | PyPI | [harborrag-engine](https://pypi.org/project/harborrag-engine/) |
 
@@ -24,7 +22,9 @@ ingestion/chunking/          # canonical route and evidence chunking
 ingestion/representations/   # dense/sparse representation policy
 ingestion/projections/       # Qdrant/Falkor projection construction and verification
 retrieval/                   # authoritative retrieval, fusion, reranking, and evidence
+tools/                       # canonical reader catalog, schemas, handlers, and checked invoker
 agent/                       # bounded multi-hop model/tool orchestration
+chat/prompts/                # typed, packaged provider-neutral chat prompts
 conversation/                # compatibility exports for the core memory port
 ```
 
@@ -35,8 +35,10 @@ conversation/                # compatibility exports for the core memory port
 - Canonical chunking has maintained Confluence and Jira policies plus a
   source-neutral fallback for attachments and community connectors.
 - Provider writes and Temporal orchestration remain outside the engine.
-- Agent logic is provider- and transport-neutral; MCP and runtime prompt
-  adapters are injected at higher package boundaries.
+- Agent tool dispatch and chat prompt definitions are provider- and
+  transport-neutral; runtime binds clients and optional memory services.
+- Reader tools bind only to core reader ports. MCP and the optional agent
+  invoke them through the same policy, validation, and output-budget boundary.
 - Conversation identity and memory contracts live in core; PostgreSQL
   persistence lives in adapters, outside chat and agent orchestration.
 

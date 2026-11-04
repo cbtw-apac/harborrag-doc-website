@@ -1,10 +1,8 @@
 ---
 title: Testing
 description: 'Run the narrowest relevant path while developing:'
-sidebar_position: 25
 custom_edit_url: https://github.com/cbtw-apac/HarborRAG/edit/main/docs/developers/testing/README.md
 source_path: docs/developers/testing/README.md
-source_sha: 217521ac92f0d1f570da22f96551954502e74c1c
 ---
 
 ## Test ownership

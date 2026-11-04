@@ -3,16 +3,14 @@ title: harborrag-core
 description: 'The provider-neutral foundation of HarborRAG: domain models, protocol
   contracts, storage schemas, and security helpers. It has no provider SDK dependencies,
   so…'
-sidebar_position: 30
 custom_edit_url: https://github.com/cbtw-apac/HarborRAG/edit/main/packages/harborrag-core/README.md
 source_path: packages/harborrag-core/README.md
-source_sha: 217521ac92f0d1f570da22f96551954502e74c1c
 ---
 
 | | |
 | --- | --- |
 | Package | `harborrag-core` |
-| Version | `2.0.0a1` |
+| Version | `2.0.0a2` |
 | Description | Core contracts, domain, ports, execution, observability, and security for HarborRAG. |
 | PyPI | [harborrag-core](https://pypi.org/project/harborrag-core/) |
 

@@ -6,7 +6,7 @@ from pathlib import Path, PurePosixPath
 from ingest import guard, writer
 from ingest.bridge import bridge_docs, bridge_ids, bridge_mapping
 from ingest.collect import collect
-from ingest.frontmatter import apply_frontmatter, render, sidebar_positions
+from ingest.frontmatter import apply_frontmatter, render
 from ingest.links import apply_links
 from ingest.mdx import mdx_sanitize
 from ingest.models import Doc, IngestRequest
@@ -66,9 +66,8 @@ def build_plan(request: IngestRequest) -> writer.WritePlan:
     for doc in docs:
         mdx_sanitize(doc)
 
-    positions = sidebar_positions(toc)
     for doc in docs:
-        apply_frontmatter(doc, positions=positions, source_sha=request.source_sha)
+        apply_frontmatter(doc)
 
     return writer.WritePlan(
         pages={PurePosixPath(d.target_path.as_posix()): render(d) for d in docs},

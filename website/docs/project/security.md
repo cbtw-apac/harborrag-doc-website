@@ -3,10 +3,8 @@ title: Security Policy
 description: 'HarborRAG 2.x is the current release line. The project is in Alpha:
   maintainers review security reports on a best-effort basis, and the repository does
   not yet…'
-sidebar_position: 38
 custom_edit_url: https://github.com/cbtw-apac/HarborRAG/edit/main/SECURITY.md
 source_path: SECURITY.md
-source_sha: 217521ac92f0d1f570da22f96551954502e74c1c
 ---
 
 ## Supported releases

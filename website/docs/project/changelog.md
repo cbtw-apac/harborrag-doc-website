@@ -1,10 +1,8 @@
 ---
 title: Changelog
 description: All notable changes to this project will be documented in this file.
-sidebar_position: 39
 custom_edit_url: https://github.com/cbtw-apac/HarborRAG/edit/main/CHANGELOG.md
 source_path: CHANGELOG.md
-source_sha: 217521ac92f0d1f570da22f96551954502e74c1c
 ---
 
 All notable changes to this project will be documented in this file.
@@ -14,18 +12,210 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0a2] - 2026-10-26
+
+Stored data is not migrated from 2.0.0a1: back up the control database and re-ingest every
+source. Follow the [upgrade guide](../users/upgrading.md) before upgrading; entries marked
+**Breaking** need action.
+
+### Added
+
+#### harborrag
+
+- The `harborrag` CLI ships with every install; `harborrag[local]` adds the local-stack clients [#59]
+
+#### harborrag-adapters
+
+- Parsing for legacy Word `.doc` and PowerPoint `.ppt`/`.pps` files [#85]
+- SharePoint connector: crawl sites, libraries, folders or selected files, with allowlists and optional site pages [#90]
+- SharePoint device-code sign-in, including for the Docker worker [#90] [#99]
+- Jira custom fields are filterable on issues and their attachments [#85]
+
+#### harborrag-app
+
+- `harborrag init` scaffolds a ready-to-run project with provider presets and data-source setup [#59]
+- `harborrag ingest run` runs an ingestion in-process, without Temporal [#59]
+- `harborrag doctor` checks the project, configuration and every backing store [#59] [#95]
+- `harborrag auth keys` issues, lists and revokes tenant-bound MCP reader keys [#85] [#89]
+- `--timeout` option for `ingest watch`, `wait` and `start --wait` [#95]
+- `ingest start` takes the connector positionally, like `ingest run` [#95]
+- Pause, resume and cancel actions are recorded in the run's events [#85]
+
+#### harborrag-engine
+
+- Placeholder graph nodes for links to sources not yet ingested, replaced once the target is published [#85]
+
+#### harborrag-mcp-server
+
+- `find_entities` tool to search whole entities by facet [#85]
+
+#### harborrag-runtime
+
+- Automatic purge of retired document versions after a configurable retention period [#85]
+- Searchable entity summaries that lead to their supporting evidence [#85]
+- Summary facets: filterable attributes copied from connector fields [#85]
+- Configurable entity summary length [#85]
+
 ### Fixed
 
-- Revalidate retrieval candidates against the authoritative active document
-  versions immediately before returning results, preventing a concurrent
-  publication from exposing a superseded document version.
+#### harborrag-adapters
+
+- Corrupt or encrypted `.xls` files are reported as parser rejections [#85]
+- SharePoint handles deleted items and expired tokens without failing the run [#96]
+- Legacy secrets are migrated to the correct tenant [#96]
+
+#### harborrag-app
+
+- Interrupting or failing `ingest run` no longer leaves the run stuck [#95]
+- The API no longer submits the same run twice [#95]
+- `ingest pause`, `resume`, `cancel`, `status` and `watch` report correct results for finished and partial runs [#95]
+- Clearer error messages that never include credentials, and faster CLI startup [#95]
+
+#### harborrag-engine
+
+- Retrieval works for users who can read more than 10,000 documents [#96]
+- Entity search honours all filters, and facet filters are case-insensitive [#96]
+- Graph reads and relation repair handle placeholder nodes and cross-scope links reliably [#96]
+
+#### harborrag-mcp-server
+
+- Tool output schemas are valid for MCP clients again [#85]
+- `find_entities` reports unknown facets instead of returning an empty result [#96]
+- A broken API key file denies access instead of revoking every key [#96]
+- Over-limit `mcp.yaml` values are lowered with a warning instead of stopping the server [#96]
+
+#### harborrag-memory
+
+- Memory retention settings are enforced [#96]
+- Memory recall works without an embedding model [#96]
+
+#### harborrag-runtime
+
+- Large sources no longer time out during discovery [#85]
+- Pausing and resuming an ingestion no longer fails the run or loses its progress [#96]
+- Re-ingesting content while its old version is being purged retries instead of failing [#96]
+- A retried chat request no longer interferes with a slow response still in progress [#96]
+- Summary and chat client failures no longer take down ingestion workers [#96]
+- A late cancellation can no longer overwrite a completed agent run [#96]
+- A warning is logged when a removed storage prefix setting is still set [#96]
+- One concise log line per failed document [#95]
+
+#### Deployment
+
+- Removed unused variables from `env-example` [#96]
+
+### Changed
+
+#### harborrag-adapters
+
+- **Breaking:** one storage namespace per tenant across Qdrant, FalkorDB and the object store; re-ingest after upgrading [#85] [#96]
+- LiteParse is the default parser, and the OCR server is now opt-in [#85]
+- `config/parsers.yaml` supports environment variables [#85]
+- **Breaking:** SharePoint requires the `Sites.Selected` permission and limits file types by default [#90]
+- SharePoint shares one rate limit across workers, skips unreadable folders, and caps retries per file [#96] [#101]
+- **Breaking:** Jira custom-field filter keys handle accented names; update saved filters and re-ingest [#96]
+- Local connectors reject unknown filters, and partial scans no longer retire documents [#95]
+
+#### harborrag-app
+
+- **Breaking:** standardized CLI exit codes; failed or partial runs now exit 1 [#95]
+- In a repository checkout, ingestion uses the stack's PostgreSQL and object-store settings instead of a local SQLite database [#95] [#99]
+- `auth keys` requires an up-to-date control database and reports clearer errors [#95]
+- Run ids cannot be reused [#95]
+- Clearer ingestion API responses when Temporal is unreachable or no longer knows a run [#95]
+- Inline progress display replaces the full-screen dashboard [#59]
+- Local commands no longer require Temporal to be installed [#59]
+- `harborrag init` keeps existing project files [#96]
+- CLI file paths resolve from the current directory [#96]
+
+#### harborrag-engine
+
+- Each source link is stored as a single graph edge, and duplicate attachment edges are removed [#85]
+- Duplicate search results are collapsed per source instead of across the whole corpus [#85]
+- Vector search results link directly to their graph nodes [#85]
+- More accurate unresolved-relation counts [#85]
+
+#### harborrag-mcp-server
+
+- **Breaking:** graph chunk edges now point from structure to chunk, and graph traversal limits are lower [#96]
+- The MCP Explorer respects each tenant's limits [#96]
+
+#### harborrag-memory
+
+- Project-scope memories stay within the session unless enabled, and summary prompts are bounded [#96]
+
+#### harborrag-runtime
+
+- Summarization is off by default [#85]
+- Summaries indicate when some source documents are still missing [#85]
+- Summary reads no longer lock or write data [#85]
+- Faster summary updates and publication [#96]
+- Retired-version cleanup starts sooner and exposes metrics [#96]
+- Ingestion defaults tuned for smaller hosts [#85]
+- Faster ingestion workflows, with per-document cost independent of source size [#85]
+- The secrets encryption key is only required by processes that open secrets [#85]
+- Failed documents report a clear error code and stage, and parser rejections are not retried [#95]
+- Startup fails on mismatched embedding dimensions [#95]
+
+#### Deployment
+
+- MinIO uses a new image that runs as a non-root user [#85]
+
+### Deprecated
+
+#### harborrag-adapters
+
+- The Confluence `max_child_pages` setting is ignored with a warning [#96]
+
+### Removed
+
+#### harborrag-app
+
+- Textual ingestion dashboard [#59]
+
+#### harborrag-mcp-server
+
+- **Breaking:** `composed_evidence_search`, `verify_citations` and `get_document_metadata` tools; use `vector_search`, `fetch_evidence` and `get_document_context` instead [#85]
+
+#### harborrag-memory
+
+- Unused `HARBORRAG_MEMORY_PII_REDACTION` setting [#96]
 
 ### Security
 
-- Require operator-supplied PostgreSQL, MinIO, and Grafana passwords instead
-  of checked-in Compose fallbacks. Existing development environments must add
-  the required database credentials and create the separate protected
-  monitoring environment file before restarting the affected stacks.
+#### harborrag-adapters
+
+- The `.ppt` parser is protected against crafted files that expand into huge output [#96]
+- SharePoint tokens are stored safely, and pre-authenticated download links are no longer kept [#96] [#98]
+- Model configuration errors no longer print API keys [#98]
+
+#### harborrag-app
+
+- Project discovery only trusts directories owned by the current user [#59]
+- Errors and logs no longer expose credentials [#95]
+- Unauthenticated mode refuses non-local requests unless explicitly allowed [#98]
+
+#### harborrag-core
+
+- More credential field names are detected and redacted [#98]
+
+#### harborrag-engine
+
+- Retrieval diagnostics no longer reveal documents the caller cannot read [#96]
+
+#### harborrag-mcp-server
+
+- Reader keys cannot target all tenants [#85]
+- In API key mode, the owner token is only accepted for single-tenant deployments [#96]
+- The MCP server no longer receives the secrets encryption key [#96]
+
+#### harborrag-memory
+
+- Shared memories can only be deleted or replaced by their author or a user with the required role [#96]
+
+#### harborrag-runtime
+
+- A tenant reindex no longer touches other tenants' cleanup jobs [#98]
 
 ## [2.0.0a1] - 2026-08-27
 
@@ -34,712 +224,120 @@ distribution filenames, dependency pins, and release tags use the canonical
 PEP 440 version `2.0.0a1`; release tooling also accepts `2.0.0-alpha` as an
 operator-facing alias.
 
-### Documentation
-
-- Rebuilt the public documentation website around HarborRAG 2.0.0 capabilities,
-  limitations, package boundaries, and project lineage.
-- Added a publication-manifest hero, interactive ingestion/retrieval explorer,
-  accessible interface examples, and responsive navigation while retaining the
-  existing visual assets and splitting presentation code into focused modules.
-- Added public data-lifecycle, runtime-reliability, publication, and security
-  guidance plus a CI guard against publishing private reference material.
-
-### Changed
-
-#### Project renamed: abc → HarborRAG
-
-- abc is now **HarborRAG**, restructured from a single Qdrant-coupled ingestion tool into a modular, provider-agnostic RAG framework. The old `abc` / `abc-core` / `abc-mcp-server` packages are replaced by eight ports-and-adapters packages (`harborrag-core`, `harborrag-adapters`, `harborrag-engine`, `harborrag-memory`, `harborrag-runtime`, `harborrag-app`, `harborrag-mcp-server`, `harborrag`), so connectors, parsers, model providers, and storage backends can evolve independently instead of being hardwired to Qdrant and a fixed provider set.
-- Documentation, Docker assets, and CI workflows updated to reflect the new package layout and naming.
-
-> This is a breaking rename: import paths, package names, and CLI/config references from `abc` do not carry over. See [README.md](overview.md) for the current architecture.
-
-## [1.0.3] - 2026-06-08
-
 ### Added
 
-#### abc
+#### harborrag
 
-- Queue-based ingestion architecture with SQLite job queue, worker pool, scheduler, and new `serve`/`jobs`/`webhook` CLI flows [#269] [#280] [#281] [#284] [#289] [#291] [#294] [#307]
-- Excel ingestion improvements and Jira Data Center custom field mapping support [#251] [#276]
-- `updated_after` filter for Jira connector to limit ingestion to issues updated after a given date [#267]
-- Container deployment setup with dedicated Dockerfiles and `docker-compose.yaml` [#278]
+- HarborRAG 2.0: a modular, provider-agnostic RAG framework built from eight independently testable packages [#1] [#6]
+- One `harborrag` install, with extras for the CLI, HTTP API, MCP server, chat, Temporal and each storage provider [#31]
+- Python SDK with ingestion, retrieval, graph and chat services behind one async client [#32]
 
-#### abc-core
+#### harborrag-adapters
 
-- Bedrock and Gemini provider support in the LLM/embedding layer [#275] [#292]
-- Sparse retrieval primitives for hybrid search flows [#184]
+- Connectors for local files, GitHub, Confluence, Jira and SharePoint, including comments and attachments [#2] [#6]
+- Parsers for text, Markdown, HTML, JSON, CSV/Excel, Word, ODT, EPUB, PowerPoint, images and PDF [#2] [#9]
+- Choice of PDF engines: PyMuPDF, Docling, LiteParse, MinerU or PaddleOCR [#2] [#9]
+- Chat, embedding and reranking clients with configurable providers [#4]
+- Storage on PostgreSQL, S3-compatible object storage, Qdrant, FalkorDB and Redis [#5] [#7]
+- Confluence pages are converted into structured text and tables [#16]
+- Optional attachment ingestion for Confluence and Jira [#19]
+- Local file discovery reports skipped files with a reason [#14]
 
-#### abc-mcp-server
+#### harborrag-app
 
-- Qdrant hybrid search support with sparse+dense pipeline integration [#184]
+- `harborrag` operator CLI [#1]
+- HTTP control-plane API with authentication, role-based access, health checks and a standard error format [#7]
+- Read APIs for projects, sources, activity, settings and metrics [#11]
+- Ingestion and connection APIs with live progress streaming [#25] [#34]
 
-### Fixed
+#### harborrag-engine
 
-#### abc
+- Ingestion pipeline that skips unchanged documents instead of re-parsing and re-embedding them [#12] [#22]
+- Table-aware chunking [#15] [#16]
+- Dense, sparse and hybrid retrieval that only cites the current version of a document [#12] [#27]
+- Knowledge graph of document structure and source relationships [#12] [#38]
+- Retrieval-grounded chat with streaming, and a bounded multi-turn agent [#22]
 
-- Queue concurrency and failure-path hardening, including race-condition fixes and safer startup/auth/readiness handling [#307] [#311]
-- State DB and Alembic path resolution reliability, plus safer rollback behavior for multi-project transactions [#270] [#285] [#290]
-- Deleted Jira issues are now cleaned up from Qdrant during re-ingestion and delete flows [#307]
-- Empty-chunk regression prevention and CORS environment configuration fixes [#268] [#293]
+#### harborrag-mcp-server
 
-### Changed
+- MCP server with `vector_search` and graph tools for triplets, paths and subgraphs [#10] [#22] [#27]
 
-#### abc
+#### harborrag-memory
 
-- Ingestion pipeline refactored to a streaming-oriented flow for queue-driven execution [#295]
+- Short-term and working memory for chat sessions [#22]
 
-## [1.0.2] - 2026-05-12
+#### harborrag-runtime
 
-### Changed
+- Durable ingestion on Temporal: survives worker restarts, retries single documents, and supports pause, resume and cancel [#12] [#24]
+- Rebuild vector and graph indexes from stored content without re-crawling sources [#12]
+- Temporal settings in YAML configuration [#32]
+
+#### Deployment
+
+- Docker Compose stack and `dev.sh` scripts to run the full stack locally [#22] [#32]
 
 #### Documentation
 
-- Updated contributing guide for external contributors [#273]
+- Public documentation website with interactive architecture and feature sections [#31] [#40]
+- Data-lifecycle, runtime-reliability, publication and security guides [#31]
 
-## [1.0.1] - 2026-04-23
+#### Development
+
+- Pre-commit and pre-push hooks running the same quality gates as CI [#28]
 
 ### Fixed
 
-#### abc
+#### harborrag-adapters
 
-- Fixed UI layout issues across website pages [#253]
-- Privacy policy `last_updated` fallback now uses template file mtime instead of build date when Git timestamp is unavailable [#259]
+- CMYK images are converted before OCR [#37]
+- Clearer errors for undecodable text files and password-protected presentations [#18] [#22]
+
+#### harborrag-engine
+
+- Retrieval never returns a superseded document version during a concurrent publish [#31]
+- Graph subgraph search returns complete results and no longer times out on large graphs [#35]
+- Jira subtasks no longer appear as a separate node from their parent issue [#33]
+- The graph keeps page and issue membership separate from document structure across all connectors [#38]
+- Relation filters only accept relation types the graph actually stores [#36]
+
+#### harborrag-mcp-server
+
+- The local MCP HTTP server works on Windows [#26]
+
+#### harborrag-runtime
+
+- Parsing falls back to in-process when a subprocess cannot start, instead of failing the document [#30]
 
 #### Documentation
 
-- Updated docs and removed broken internal links [#258]
-
-## [1.0.0] - 2026-04-09
-
-### Added
-
-#### abc
-
-- Contextual embeddings for enriched chunk context during ingestion [#221]
-
-### Fixed
-
-#### abc
-
-- Jira Cloud connection failure due to deprecated search API endpoints [#215]
-- Duplicate chunks for Python files by rewriting AST parser [#217]
-- Duplicate document IDs causing missing chunks in metric tracking [#222]
-- Ingestion metrics: aligned size metrics and aggregated project results [#222]
-- JQL injection and query breaking when configuration values include special characters [#223]
-- Jira connector validation for environment configuration and connection errors [#224]
-- Optional `issue_types` and `include_statuses` configuration for Jira connector [#223]
-- Error message sanitization to prevent accidental exposure of sensitive data [#230]
-- Contextual embedding content formatting [#228]
-- YAML syntax error and broken markdown in configuration documentation [#231]
-
-#### abc-core
-
-- Sensitive data redaction in logging processors [#230]
-
-#### abc-mcp-server
-
-- Embedding logic and configuration for local (Ollama) model support [#229]
-- `vector_search_service` to use correct `embedding_model` parameter [#229]
-- Retry logic and failure context reporting in search pipeline [#229]
+- Website build fixes for link checking, coverage pages, UTF-8 output and asset paths [#43] [#44] [#45] [#48]
 
 ### Changed
 
-#### abc
+#### harborrag
 
-- Aligned configuration templates with Ollama-first and OpenAI unified setup [#231]
-- Migrated pip/venv to uv for monorepo package management [#220]
-- Updated deprecated GitHub Actions from Node.js 20 to Node.js 24 [#227]
-- Updated website UI to v1 [#219]
-
-## [0.9.0] - 2026-03-26
-
-### Added
-
-#### abc
-
-- `enable_semantic_analysis` global NLP kill switch in `chunking` config to skip spaCy/LDA processing entirely for faster ingestion [#189]
-- `enable_enhanced_semantic_analysis` opt-in flag in `chunking` config to gate advanced NLP fields (`pos_tags`, `dependencies`, `document_similarity`) [#195]
-
-#### abc-mcp-server
-
-- `expand_chunk_context` MCP tool to retrieve surrounding chunks for richer context around a specific chunk [#185]
-- `cluster_session_id` required parameter to `expand_cluster` tool schema for session isolation [#175]
-
-### Fixed
-
-#### abc
-
-- Semantic analyzer now filters out garbage/punctuation-only entities from NLP metadata [#178]
-- Improved semantic similarity caching to avoid self-matches and keep similarity results fresh across repeated enhanced analyses [#195]
-
-#### abc-mcp-server
-
-- Instance-level `_clustering_cache` causing cross-request data leakage in `IntelligenceHandler`; replaced with session-scoped store with TTL cleanup [#175]
-- MCP server concurrency improved with FastAPI-centric workers and semaphore-based search load distribution [#176]
-- Removed redundant top-level `schemas.py` that duplicated per-tool schema modules [#181]
-- Search handler config instance de-duplicated to eliminate redundant initialization [#174]
-
-### Changed
-
-#### abc-mcp-server
-
-- CLI and transport layer refactored: `server.py` centralizes startup; HTTP handler split into focused route modules [#176]
-
-## [0.8.1] - 2026-03-24
-
-### Fixed
-
-- CI secret injection restricted to develop/main branches only [#187]
-- CI secrets and integration tests skipped for fork/Dependabot PRs [#187]
-
-### Changed
-
-- Removed `uv.lock` from version control tracking [#187]
-
-## [0.8.0] - 2026-03-17
-
-### Removed
-
-#### abc
-
-- Legacy binary Office formats (`.doc`/`.ppt`) no longer supported [#145]
-
-### Fixed
-
-#### abc
-
-- Unsupported-type fallback now skips ingestion for legacy `.doc`/`.ppt` files [#145]
-- Excel chunk overlap consistency [#142]
-- `.xls` inputs now treated as Excel files for chunking strategy and metadata [#141]
-
-#### abc-mcp-server
-
-- Applied NLP processing only to keyword-search flow [#134]
-- Lazily loaded `qdrant-client`, `spaCy`, and network imports in MCP server [#132]
-- Reduced CLI startup time by lazily loading the OpenAI SDK [#131]
-
-### Added
-
-#### abc-mcp-server
-
-- Cross-encoder reranking to improve retrieval relevance [#151]
-- `expand_document` MCP tool to expand context around a specific chunk [#149]
-- `expand_cluster` MCP tool with detailed analysis of document grouping and relationships [#146]
-- WRRF ranking for hybrid search to improve result quality [#133]
-
-### Changed
-
-- Simplified configuration with smart defaults and a setup wizard [#144]
-
-## [0.7.6] - 2026-01-22
-
-### Changed
-
-- Documentation terminology updated from "Release Notes" to "Changelog" [#112]
-- Applied consistent formatting across workflow and updated navigation links [#112]
-
-## [0.7.5] - 2026-01-20
-
-### Fixed
-
-#### abc-mcp-server
-
-- Mixed document types (dict/object) causing "Untitled" and empty `content_preview` in results [#92]
-- Incorrect usage of NestedCondition for `project_ids` filter replaced with dot notation [#97]
-- Search results not respecting user-specified `limit` parameter (now defaults to 5) [#98]
-
-### Added
-
-#### abc-mcp-server
-
-- Optional `similarity_threshold` parameter (default 0.7) to `find_similar_documents` for filtering by minimum similarity score [#91]
-- Separate `fetch_limit` from user `limit` with configurable defaults for better control [#98]
-
-### Changed
-
-#### abc-mcp-server
-
-- Updated `reason` field from `explanation` to `recommendation_reason` in complementary content results [#100]
-- Enhanced validation for text field types to prevent display issues [#92]
-
-## [0.7.4] - 2025-12-11
-
-### Fixed
-
-#### abc
-
-- Windows asyncio event loop crashes with signal handling and stdio support [#76]
-- --log-level CLI option not working after logging initialization [#63]
-- Missing prometheus-client dependency causing import errors [#75]
-- Deprecated langchain.text_splitter import warnings [#76]
-
-#### abc-mcp-server
-
-- Missing Spacy dependency causing Cursor MCP crash on startup [#82]
-- MCP Search API compatibility issues with qdrant-client 1.16 [#78]
-
-### Added
-
-#### abc
-
-- Test suite cross-platform support [#76]
-
-## [0.7.3] - 2025-09-11
-
-### Fixed
-
-#### abc
-
-- Logging duplication where CLI commands printed each log message 2-4 times [#56]
-
-### Changed
-
-#### abc-core
-
-- Unified logging architecture with centralized configuration across all packages [#56]
-- Idempotent setup with new `reconfigure()` method [#56]
-
-## [0.7.2] - 2025-09-05
-
-### Changed
-
-- Internal inter-package dependencies now pinned to unified release version [#54]
-- Enhanced dry-run output to preview internal dependency pin changes [#54]
-- Enforced explicit release order: bump → update classifiers → pin deps → commit → tag → release [#54]
-- Updated commit messages to reflect classifier and internal dependency updates [#54]
-
-## [0.7.1] - 2025-09-04
-
-### Added
-
-#### abc-core
-
-- Azure OpenAI support with robust endpoint handling (BETA) [#52]
-- Ollama endpoint handling [#52]
-- Unified `global.llm.*` configuration for provider-agnostic setup [#52]
-- Structured logging for LLM requests (provider, operation, model, latency) [#52]
-- Secret redaction in logs [#52]
-- Normalized exception mapping across providers [#52]
-
-### Changed
-
-#### abc-core
-
-- Vector size now read from config instead of hardcoded `1536` defaults [#52]
-- Centralized LLM layer with provider adapters [#52]
-- Direct OpenAI imports removed from application code [#52]
-- Tests and documentation updated for provider-agnostic architecture [#52]
-
-#### abc-mcp-server
-
-- MCP server prefers config file loading with CLI/env/file precedence [#53]
-
-### Deprecated
-
-#### abc-core
-
-- Legacy fields `global.embedding.*` and `file_conversion.markitdown.*` (deprecation warnings shown) [#52]
+- License changed to Apache 2.0 [#3]
 
 ### Security
 
-#### abc-mcp-server
+#### harborrag-adapters
 
-- Redacted `--print-config` for MCP server [#53]
+- Connector credentials are encrypted at rest [#25]
+- Outbound requests to private or disallowed addresses are blocked [#8]
 
-## [0.6.1] - 2025-08-13
+#### harborrag-app
 
-### Fixed
+- Every control-plane API call is limited to the caller's tenant [#23]
+- Secrets are redacted from API responses and diagnostics [#8] [#11]
+- Production refuses to run on the default SQLite database [#8]
 
-#### abc-mcp-server
+#### harborrag-mcp-server
 
-- Timeout and error issues in `detect_document_conflicts` tool (achieved P95 latency 8-10s) [#45]
-- AttributeError in conflict formatter: `'dict' object has no attribute 'document_id'` [#45]
+- The audit log refuses symlinks and other unsafe files [#26] [#27]
 
-### Added
+#### Deployment
 
-#### abc-mcp-server
+- Database, MinIO and Grafana passwords must be supplied by the operator [#31]
 
-- Tiered analysis with intelligent document pair prioritization [#45]
-- Parallel processing with concurrent Qdrant vector retrieval [#45]
-- 8 configuration options for conflict detection performance tuning [#45]
-- Detailed performance statistics in tool responses [#45]
-- Optional per-call parameter overrides for conflict detection [#45]
-
-### Changed
-
-#### abc-mcp-server
-
-- Strict budgeting for expensive LLM calls (default 2 pairs) [#45]
-- Graceful degradation with partial results instead of hard failures [#45]
-- Tool schema enhanced with performance parameters [#45]
-- Error handling for malformed document data [#45]
-
-## [0.6.0] - 2025-08-12
-
-### Added
-
-#### abc-mcp-server
-
-- FastAPI-based HTTP transport alongside stdio transport [#43]
-- Server-Sent Events (SSE) streaming capabilities [#43]
-- `--transport` CLI option to choose between stdio and HTTP modes [#43]
-- Health check endpoints for production deployment [#43]
-- Structured tool output with JSON content [#43]
-- Tool behavioral annotations for all 8 tools [#43]
-- Protocol version validation with graceful degradation [#43]
-- Comprehensive session management for HTTP connections [#43]
-
-### Changed
-
-#### abc-mcp-server
-
-- MCP Protocol upgraded from 2024-11-05 to 2025-06-18 [#43]
-- Modular transport layer with clean separation [#43]
-- Error handling with improved messages [#43]
-- Connection handling performance optimizations [#43]
-
-## [0.5.1] - 2025-07-28
-
-### Changed
-
-#### abc-core
-
-- All chunking strategies refactored into modular components [#39]
-- Dedicated classes for document parsing, section splitting, metadata extraction [#39]
-- HTML chunking with robust handling for empty content and malformed HTML [#39]
-- Code and JSON strategy complete modular redesign [#39]
-- Chunk processing with additional metadata fields [#39]
-- Configuration templates with new strategy-specific options [#39]
-
-## [0.5.0] - 2025-07-25
-
-### Added
-
-#### abc-mcp-server
-
-- Cross-document intelligence: similarity analysis, clustering, relationship detection [#35]
-- Intent-aware adaptive search with AI-powered query understanding [#35]
-- Knowledge graph integration with entity relationships [#35]
-- Topic-driven search chaining with automatic discovery [#35]
-- Dynamic faceted search with real-time generation [#35]
-- spaCy integration for advanced NLP processing [#35]
-
-#### abc
-
-- `--force` flag to bypass change detection for complete reprocessing [#35]
-
-### Changed
-
-#### abc-core
-
-- Topic extraction with enhanced LDA modeling [#35]
-- Entity recognition with structured conversion [#35]
-- Chunking with improved timeout handling [#35]
-- Structured logging for semantic analysis [#35]
-
-## [0.4.15] - 2025-07-22
-
-### Fixed
-
-#### abc-core
-
-- Critical chunking inconsistency (all strategies now use character-based `chunk_size`) [#33]
-
-### Changed
-
-#### abc-core
-
-- Markdown strategy refactored into focused components [#33]
-- Hierarchical metadata with intelligent section analysis [#33]
-- Split level detection based on document structure [#33]
-- Boundary detection using tokenizer for word/token boundaries [#33]
-
-### Added
-
-#### abc-core
-
-- Comprehensive integration tests for strategy consistency [#33]
-
-## [0.4.14] - 2025-07-13
-
-### Fixed
-
-#### abc-core
-
-- Regex error in Excel table detection: `bad character range |-\s` [#33]
-- Large Excel tables treated as single massive chunks [#33]
-- Token limit warnings for large Excel chunks [#33]
-
-### Changed
-
-#### abc-core
-
-- Logical unit management with intelligent splitting at line boundaries [#33]
-- Efficient chunking for large Excel files [#33]
-- Error handling with better error messages [#33]
-- Table structure preservation during chunking [#33]
-
-## [0.4.13] - 2025-07-11
-
-### Added
-
-#### abc-core
-
-- Sheet-aware sectioning for Excel files (split on H2 headers) [#33]
-- Table-aware chunking with specialized `_split_excel_sheet_content` method [#33]
-- Intelligent content detection based on `original_file_type` metadata [#33]
-- 3 test cases for Excel chunking scenarios [#33]
-
-### Changed
-
-#### abc-core
-
-- Excel-to-markdown chunking in MarkdownChunkingStrategy [#33]
-- Context-aware splitting with different header level thresholds [#33]
-- Metadata tracking with `is_excel_sheet` field [#33]
-- Table boundary preservation in chunking [#33]
-
-## [0.4.12] - 2025-07-10
-
-### Fixed
-
-#### abc-core
-
-- Missing chunk overlap in MarkdownChunkingStrategy [#33]
-
-### Added
-
-#### abc-core
-
-- Intelligent overlap calculation using paragraph/sentence boundaries [#33]
-- Comprehensive overlap testing [#33]
-
-### Changed
-
-#### abc-core
-
-- Overlap configuration support (0 for no overlap, up to 25% for context) [1f53556]
-
-## [0.4.11] - 2025-07-10
-
-### Fixed
-
-#### abc-core
-
-- File size detection limits for larger documents [6160435]
-- MarkdownChunkingStrategy not respecting `chunk_size` configuration [6160435]
-- Unique chunk ID generation (chunks had identical IDs causing overwrites) [6160435]
-
-### Added
-
-#### abc-core
-
-- `max_chunks_per_document` configuration parameter [6160435]
-
-### Changed
-
-#### abc-core
-
-- Chunk count management with configurable limits [6160435]
-- Error messages with actionable configuration advice [6160435]
-- Section limits now dynamic (50% of max_chunks_per_document) [6160435]
-
-### Removed
-
-#### abc-core
-
-- Conflicting `max_document_size` parameter [6160435]
-
-## [0.4.10] - 2025-06-18
-
-### Fixed
-
-#### abc
-
-- Duplicate debug logging with `[DEBUG] [DEBUG]` tags [c72a872]
-- Mixed path separators in Windows log output [c72a872]
-- .txt file processing when `file_types: []` was empty [c72a872]
-
-#### abc-core
-
-- Windows file URL parsing for LocalFile connector [c72a872]
-- Git connector document URL generation with Windows paths [c72a872]
-
-### Changed
-
-#### abc
-
-- Logging verbosity control for third-party libraries [c72a872]
-- Emoji handling for Windows console [c72a872]
-- SQLite logs now suppressed [c72a872]
-
-#### abc-core
-
-- Path normalization across all connectors [c72a872]
-- Timeout handling (threading on Windows, signals on Unix) [c72a872]
-
-### Added
-
-#### abc
-
-- 38 Windows compatibility test cases [c72a872]
-
-## [0.4.9] - 2025-06-18
-
-### Fixed
-
-#### abc-core
-
-- Missing `content_type="md"` field in `_create_deleted_document` method [430cb2a]
-
-## [0.4.8] - 2025-06-17
-
-### Fixed
-
-#### abc-core
-
-- Windows file URL parsing in LocalFile Connector [b60e6e0]
-- Git Connector document URL generation with Windows paths [b60e6e0]
-- File conversion timeout handling for cross-platform [b60e6e0]
-- MarkItDown Windows signal compatibility [b60e6e0]
-
-#### abc
-
-- Console emoji handling for Windows [b60e6e0]
-- Duplicate log level display [b60e6e0]
-
-### Added
-
-#### abc
-
-- 38 Windows compatibility test cases [b60e6e0]
-
-## [0.4.7] - 2025-06-09
-
-### Fixed
-
-#### abc
-
-- Upgrade instructions to include `abc-mcp-server` package [fecc0dc]
-
-#### abc-core
-
-- Branch display logic to default to 'main' when unknown [fecc0dc]
-
-### Changed
-
-#### abc
-
-- Configuration template with detailed comments [fecc0dc]
-- Release script with automatic RELEASE_NOTES.md validation [fecc0dc]
-
-#### abc-core
-
-- Logging in PublicDocsConnector [fecc0dc]
-
-## [0.4.6] - 2025-06-03
-
-### Added
-
-#### abc
-
-- Automatic update notifications when new versions available [3604f92]
-- Non-intrusive background version checking [3604f92]
-
-## [0.4.5] - 2025-06-03
-
-### Fixed
-
-#### abc
-
-- Version detection using `importlib.metadata.version()` [#25]
-
-#### abc-core
-
-- Circular imports in config → connectors → config cycle [#25]
-
-### Changed
-
-#### abc
-
-- CLI startup time reduced by 60-67% for basic commands [#24]
-  - `--help`: ~6.8s → 2.33s (66% improvement)
-  - `--version`: ~6.3s → 2.57s (59% improvement)
-- Lazy loading for heavy modules (96-97% import time reduction) [#25]
-
-### Added
-
-#### abc-core
-
-- Warning capture system for Excel file processing [#25]
-- Structured logging for openpyxl warnings [#25]
-- Smart detection for "Data Validation" and "Conditional Formatting" warnings [#25]
-- Summary reporting for unsupported Excel features [#25]
-
-## [0.4.4] - 2025-06-03
-
-### Fixed
-
-#### abc-core
-
-- File conversion initialization with missing `set_file_conversion_config` calls [#21]
-- Converted files using wrong chunking strategy [#21]
-- NLP processing skipped for converted files [#21]
-- MarkdownChunkingStrategy infinite loops with very long words [#21]
-
-#### abc
-
-- ResourceManager cleanup causing workers to exit prematurely [#21]
-
-### Added
-
-#### abc-core
-
-- Safety limits: `MAX_CHUNKS_PER_SECTION = 100` and `MAX_CHUNKS_PER_DOCUMENT = 500` [#21]
-- Handling for words longer than `max_size` [#21]
-- Comprehensive tests for converted file NLP processing [#21]
-
-### Changed
-
-#### abc-core
-
-- Strategy selection based on conversion status [#21]
-- Metadata propagation for converted files [#21]
-- `MAX_CHUNKS_TO_PROCESS` increased from 100 to 1000 chunks [#21]
-- Large document handling (up to ~1000KB text limit) [#21]
-
-#### abc
-
-- Change detection for incremental updates [#21]
-- Signal handling for graceful shutdown [#21]
-
-[2.0.0a1]: https://github.com/cbtw-apac/HarborRAG/compare/abc-v1.0.3...harborrag-v2.0.0a1
-[1.0.3]: https://github.com/abc/abc/compare/abc-v1.0.2...abc-v1.0.3
-[1.0.2]: https://github.com/abc/abc/compare/abc-v1.0.1...abc-v1.0.2
-[1.0.1]: https://github.com/abc/abc/compare/abc-v1.0.0...abc-v1.0.1
-[1.0.0]: https://github.com/abc/abc/compare/abc-v0.9.0...abc-v1.0.0
-[0.9.0]: https://github.com/abc/abc/compare/abc-v0.8.1...abc-v0.9.0
-[0.8.1]: https://github.com/abc/abc/compare/abc-v0.8.0...abc-v0.8.1
-[0.8.0]: https://github.com/abc/abc/compare/abc-v0.7.6...abc-v0.8.0
-[0.7.6]: https://github.com/abc/abc/compare/abc-v0.7.5...abc-v0.7.6
-[0.7.5]: https://github.com/abc/abc/compare/abc-v0.7.4...abc-v0.7.5
-[0.7.4]: https://github.com/abc/abc/compare/abc-v0.7.3...abc-v0.7.4
-[0.7.3]: https://github.com/abc/abc/compare/abc-v0.7.2...abc-v0.7.3
-[0.7.2]: https://github.com/abc/abc/compare/abc-v0.7.1...abc-v0.7.2
-[0.7.1]: https://github.com/abc/abc/compare/abc-v0.6.1...abc-v0.7.1
-[0.6.1]: https://github.com/abc/abc/compare/abc-v0.6.0...abc-v0.6.1
-[0.6.0]: https://github.com/abc/abc/compare/abc-v0.5.1...abc-v0.6.0
-[0.5.1]: https://github.com/abc/abc/compare/abc-v0.5.0...abc-v0.5.1
-[0.5.0]: https://github.com/abc/abc/compare/abc-v0.4.15...abc-v0.5.0
-[0.4.15]: https://github.com/abc/abc/compare/abc-v0.4.14...abc-v0.4.15
-[0.4.14]: https://github.com/abc/abc/compare/abc-v0.4.13...abc-v0.4.14
-[0.4.13]: https://github.com/abc/abc/compare/abc-v0.4.12...abc-v0.4.13
-[0.4.12]: https://github.com/abc/abc/compare/abc-v0.4.11...abc-v0.4.12
-[0.4.11]: https://github.com/abc/abc/compare/abc-v0.4.10...abc-v0.4.11
-[0.4.10]: https://github.com/abc/abc/compare/abc-v0.4.9...abc-v0.4.10
-[0.4.9]: https://github.com/abc/abc/compare/abc-v0.4.8...abc-v0.4.9
-[0.4.8]: https://github.com/abc/abc/compare/abc-v0.4.7...abc-v0.4.8
-[0.4.7]: https://github.com/abc/abc/compare/abc-v0.4.6...abc-v0.4.7
-[0.4.6]: https://github.com/abc/abc/compare/abc-v0.4.5...abc-v0.4.6
-[0.4.5]: https://github.com/abc/abc/compare/abc-v0.4.4...abc-v0.4.5
-[0.4.4]: https://github.com/abc/abc/compare/abc-v0.4.2...abc-v0.4.4
+[2.0.0a2]: https://github.com/cbtw-apac/HarborRAG/compare/harborrag-v2.0.0a1...harborrag-v2.0.0a2
+[2.0.0a1]: https://github.com/cbtw-apac/HarborRAG/releases/tag/harborrag-v2.0.0a1

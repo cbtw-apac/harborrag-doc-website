@@ -3,16 +3,14 @@ title: harborrag
 description: harborrag is the public SDK facade and installation bundle for HarborRAG,
   a modular, provider-agnostic RAG framework for engineering knowledge. Importing
   it…
-sidebar_position: 29
 custom_edit_url: https://github.com/cbtw-apac/HarborRAG/edit/main/packages/harborrag/README.md
 source_path: packages/harborrag/README.md
-source_sha: 217521ac92f0d1f570da22f96551954502e74c1c
 ---
 
 | | |
 | --- | --- |
 | Package | `harborrag` |
-| Version | `2.0.0a1` |
+| Version | `2.0.0a2` |
 | Description | Meta-package public facade for HarborRAG. |
 | PyPI | [harborrag](https://pypi.org/project/harborrag/) |
 

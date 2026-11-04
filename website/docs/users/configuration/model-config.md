@@ -2,10 +2,8 @@
 title: Model Configuration
 description: The model adapter provides separate chat, embedding, and reranking clients.
   Each family loads its own section from the same YAML or JSON file and returns an…
-sidebar_position: 13
 custom_edit_url: https://github.com/cbtw-apac/HarborRAG/edit/main/docs/users/configuration/model-config.md
 source_path: docs/users/configuration/model-config.md
-source_sha: 217521ac92f0d1f570da22f96551954502e74c1c
 ---
 
 The model adapter provides separate chat, embedding, and reranking clients. Each family loads its own section from the same YAML or JSON file and returns an immutable Pydantic configuration object.

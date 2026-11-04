@@ -2,10 +2,8 @@
 title: Contributing to HarborRAG
 description: Thank you for contributing. HarborRAG is a multi-package Python workspace,
   so a good change preserves package boundaries, includes tests at the owning layer,…
-sidebar_position: 37
 custom_edit_url: https://github.com/cbtw-apac/HarborRAG/edit/main/CONTRIBUTING.md
 source_path: CONTRIBUTING.md
-source_sha: 217521ac92f0d1f570da22f96551954502e74c1c
 ---
 
 Thank you for contributing. HarborRAG is a multi-package Python workspace, so a good change preserves package boundaries, includes tests at the owning layer, and updates the relevant documentation and configuration examples.
@@ -63,7 +61,7 @@ Keep changes focused. Do not combine generated files, broad formatting, or unrel
 | --- | --- |
 | `harborrag-core` | Provider-neutral domain objects, shared schemas, model contracts, errors, and security helpers |
 | `harborrag-adapters` | External connectors, parsers, model transports, repository providers, and provider validation |
-| `harborrag-memory` | Provider-neutral conversation-memory contracts and policies |
+| `harborrag-memory` | Conversation-memory policy on LangChain primitives; provider-neutral (no LLM-provider SDKs: the model arrives as a `BaseChatModel`) |
 | `harborrag-engine` | Pure ingestion transformations, representation/projection mapping, retrieval, and evidence orchestration |
 | `harborrag-runtime` | Configuration loading, composition, jobs, supervision, schedules, and durable-workflow boundaries |
 | `harborrag-app` | Application services, CLI commands, and HTTP controllers |
@@ -186,9 +184,11 @@ non-complexity Ruff findings. `make complexity` enforces the committed per-file
 `uv run python scripts/check_ruff_complexity.py --write-baseline`.
 
 The CI quality workflow runs Ruff lint, the complexity ratchet, import-linter, type
-checking, dependency direction, compilation, and the 90% coverage gate. A second
-workflow runs every active package suite plus the website tests. Configure branch
-protection to require the `Quality Gates / build-test` status.
+checking, dependency direction, and compilation. The test workflow runs each package
+suite once, then combines their coverage for the same 90% gate that `make coverage`
+applies locally; it also runs the website and release-tooling tests with their own
+coverage floors. Configure branch protection to require the
+`Quality Gates / build-test` and `Test and Coverage / Test Summary` statuses.
 
 ## Git hooks
 

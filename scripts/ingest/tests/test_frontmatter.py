@@ -4,17 +4,14 @@ import yaml
 
 from ingest.frontmatter import (
     EDIT_URL_BASE,
-    HIDDEN_SIDEBAR_CLASS,
     apply_frontmatter,
     build_frontmatter,
     extract_description,
     extract_title,
     fallback_title,
     render,
-    sidebar_positions,
 )
 from ingest.models import Doc
-from ingest.toc import Category, DocItem, LinkItem
 
 SRC = PurePosixPath("docs/users/chat/models.md")
 
@@ -91,45 +88,25 @@ def test_description_none_without_prose():
     assert extract_description("## Heading\n\n- a\n- b\n") is None
 
 
-# --------------------------------------------------------------------------- sidebar
-
-
-def test_sidebar_positions_follow_toc_order():
-    toc = [
-        Category("A", [DocItem("One", "a/one"), LinkItem("L", "https://x")]),
-        Category("B", [DocItem("Two", "b/two", items=[DocItem("Three", "b/three")])]),
-    ]
-
-    assert sidebar_positions(toc) == {"a/one": 1, "b/two": 2, "b/three": 3}
-
-
 # --------------------------------------------------------------------------- assemble
 
 
 def test_build_frontmatter_in_toc():
-    fm = build_frontmatter(
-        title="T", description="D", position=3, source_path=SRC, source_sha="abc123"
-    )
+    fm = build_frontmatter(title="T", description="D", source_path=SRC)
 
     assert list(fm) == [
         "title",
         "description",
-        "sidebar_position",
         "custom_edit_url",
         "source_path",
-        "source_sha",
     ]
     assert fm["custom_edit_url"] == EDIT_URL_BASE + SRC.as_posix()
 
 
 def test_build_frontmatter_not_in_toc_is_hidden():
-    fm = build_frontmatter(
-        title="T", description=None, position=None, source_path=SRC, source_sha="abc123"
-    )
+    fm = build_frontmatter(title="T", description=None, source_path=SRC)
 
-    assert "sidebar_position" not in fm
     assert "description" not in fm
-    assert fm["sidebar_class_name"] == HIDDEN_SIDEBAR_CLASS
 
 
 def test_apply_and_render_round_trip():
@@ -141,13 +118,11 @@ def test_apply_and_render_round_trip():
         frontmatter={},
     )
 
-    apply_frontmatter(doc, positions={"users/chat/models": 7}, source_sha="abc123")
+    apply_frontmatter(doc)
     out = render(doc)
 
     _, fm_text, body = out.split("---\n", 2)
     fm = yaml.safe_load(fm_text)
     assert fm["title"] == "Chat: Models"
-    assert fm["sidebar_position"] == 7
-    assert fm["source_sha"] == "abc123"
     assert body.lstrip("\n").startswith("Pick a model.")
     assert out.endswith("Last reviewed: 2026-08-27\n")

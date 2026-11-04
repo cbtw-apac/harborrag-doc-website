@@ -2,10 +2,8 @@
 title: Open-Source Publication Guidelines
 description: HarborRAG documentation should let the community understand, run, evaluate,
   extend, and safely operate the code that is actually in the repository. It should…
-sidebar_position: 28
 custom_edit_url: https://github.com/cbtw-apac/HarborRAG/edit/main/docs/developers/publication-guidelines.md
 source_path: docs/developers/publication-guidelines.md
-source_sha: 217521ac92f0d1f570da22f96551954502e74c1c
 ---
 
 HarborRAG documentation should let the community understand, run, evaluate, extend, and safely

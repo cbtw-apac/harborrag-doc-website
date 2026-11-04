@@ -2,10 +2,8 @@
 title: Data Lifecycle
 description: HarborRAG turns a changing source item into an authoritative, versioned
   knowledge artifact, then serves evidence only from the version that is currently…
-sidebar_position: 21
 custom_edit_url: https://github.com/cbtw-apac/HarborRAG/edit/main/docs/developers/architecture/data-lifecycle.md
 source_path: docs/developers/architecture/data-lifecycle.md
-source_sha: 217521ac92f0d1f570da22f96551954502e74c1c
 ---
 
 HarborRAG turns a changing source item into an authoritative, versioned knowledge artifact,

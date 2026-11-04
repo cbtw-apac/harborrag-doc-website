@@ -2,10 +2,8 @@
 title: Architecture
 description: HarborRAG uses a ports-and-adapters layout. Provider-neutral contracts
   flow downward; SDK integrations and operator surfaces stay at the edges.
-sidebar_position: 20
 custom_edit_url: https://github.com/cbtw-apac/HarborRAG/edit/main/docs/developers/architecture/README.md
 source_path: docs/developers/architecture/README.md
-source_sha: 217521ac92f0d1f570da22f96551954502e74c1c
 ---
 
 HarborRAG uses a ports-and-adapters layout. Provider-neutral contracts flow downward; SDK integrations and operator surfaces stay at the edges.
@@ -28,7 +26,8 @@ These rules are more important than any individual provider choice:
 - Retrieval validates candidate versions against PostgreSQL before returning evidence.
 - Every data-plane operation carries tenant and principal context to the storage boundary.
 - Provider SDK types stop at adapters; core contracts and engine policy remain provider-neutral.
-- Temporal coordinates durable ingestion. Retrieval remains a direct, latency-sensitive path.
+- Memory model policy accepts the neutral `MemoryModel` protocol. Existing LangChain models remain supported through a compatibility adapter; `langchain-core` supplies message conversion and trimming, while LangGraph is not required.
+- The default Temporal gateway coordinates durable ingestion behind a provider-neutral contract. Retrieval remains a direct, latency-sensitive path.
 
 ## Active package map
 
@@ -51,7 +50,7 @@ These rules are more important than any individual provider choice:
 harborrag_core      -> no HarborRAG package
 harborrag_adapters  -> core
 harborrag_memory    -> core
-harborrag_engine    -> core, memory
+harborrag_engine    -> core
 harborrag_runtime   -> core, adapters, engine, memory
 harborrag_app       -> core, runtime
 harborrag_mcp_server -> core, runtime
@@ -193,6 +192,13 @@ and state repositories and inject them behind core ports. Engine deliberately do
 not import `harborrag_adapters.repositories`: doing so would couple business policy
 to provider implementations and reverse the dependency direction.
 
+The configured `object_store_provider`, `vector_provider`, and `graph_provider`
+select production storage factories. Plugins register factories through
+`harborrag_runtime.composition.storage_providers.storage_providers`; graph providers
+may separately implement optional topology projection. Default providers remain
+S3, Qdrant, and FalkorDB. Core structural storage, artifact, and document-release
+ports keep consuming services independent of adapter inheritance.
+
 ## Engine and runtime
 
 `harborrag-engine` owns publication, projection-verification, document-version,
@@ -226,8 +232,12 @@ bootstrap code, not in provider adapters.
 
 The app CLI calls `BaseAppService` rather than adapters. Production ingestion
 commands and HTTP ingestion routes resolve a secret-free source contract,
-persist a pending task in Postgres, and delegate to
-`IngestionTemporalClient`. The deployed worker registers only the canonical
+persist a pending task in Postgres, and delegate to runtime's neutral
+`IngestionGateway`. The default `TemporalIngestionGateway` translates submission,
+retry, status, and result values to the Temporal client's workflow contracts.
+Application composition can replace the gateway, its health description, and source
+preparation defaults without importing Temporal internals. An import-linter rule
+protects this boundary. The deployed worker registers only the canonical
 source, batch, document, failed-document retry, and reindex workflows.
 
 Chat and agent are app-only surfaces; MCP does not expose them. Both follow
