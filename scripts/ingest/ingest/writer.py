@@ -48,6 +48,7 @@ def target_dir(site: Path, channel: Channel) -> Path:
     """
     if channel == Channel.MAIN or channel == Channel.PRERELEASE:
         return site / DOCS_DIR
+    # channel == Channel.STABLE will be added in phase 5
     raise ValueError(f"channel is {channel.upper()}")
 
 
