@@ -8,7 +8,7 @@ from ingest.bridge import bridge_docs, bridge_ids, bridge_mapping
 from ingest.collect import collect
 from ingest.frontmatter import apply_frontmatter, render
 from ingest.links import apply_links
-from ingest.mdx import mdx_sanitize
+from ingest.mdx import find_mdx_unsafe, mdx_sanitize
 from ingest.models import Doc, IngestRequest
 from ingest.toc import load_toc, render_sidebars_ts, toc_link_mapping
 
@@ -62,11 +62,23 @@ def build_plan(request: IngestRequest) -> writer.WritePlan:
     pages = {PurePosixPath(p.as_posix()) for p in files}
     toc = load_toc(source, pages=pages, bridge=bridge_ids(files))
 
+    # Read the source files, not doc.body: bridged pages already carry a facts
+    # table, which would shift every reported line number.
+    unsafe = [
+        failure
+        for doc in docs
+        for failure in find_mdx_unsafe(
+            doc.source_path, (source / doc.source_path).read_text(encoding="utf-8")
+        )
+    ]
+    if unsafe:
+        raise ValueError(
+            "MDX-unsafe content in source docs:\n" + "\n".join(f"- {f}" for f in unsafe)
+        )
+
     apply_links(docs, mapping=link_mapping(files, toc_link_mapping(toc)), source_root=source)
     for doc in docs:
         mdx_sanitize(doc)
-
-    for doc in docs:
         apply_frontmatter(doc)
 
     return writer.WritePlan(
