@@ -166,18 +166,26 @@ const config: Config = {
           label: "Docs",
           position: "left",
         },
-        // Going to restore this at step 2, once the first ingestion creates these pages
-        // {
-        //   to: "/docs/developers/architecture",
-        //   label: "Architecture",
-        //   position: "left",
-        // },
-        // {
-        //   to: "/docs/users/detailed-guides/mcp-server",
-        //   label: "MCP",
-        //   position: "left",
-        // },
-        // { to: "/docs/project/changelog", label: "Changelog", position: "left" },
+        // By doc id, not URL: the route depends on the version (/docs/next/... today,
+        // /docs/... once a stable snapshot exists). The pages come from the ingest.
+        {
+          type: "doc",
+          docId: "developers/architecture/README",
+          label: "Architecture",
+          position: "left",
+        },
+        {
+          type: "doc",
+          docId: "users/detailed-guides/mcp-server/README",
+          label: "MCP",
+          position: "left",
+        },
+        {
+          type: "doc",
+          docId: "project/changelog",
+          label: "Changelog",
+          position: "left",
+        },
         { type: "docsVersionDropdown", position: "right" },
         { href: SOURCE_REPO, label: "GitHub", position: "right" },
         {
