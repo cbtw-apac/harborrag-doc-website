@@ -124,7 +124,7 @@ def test_updated_sync_state_keeps_versions(tmp_path):
         ("abc", "abc", False, True),
         ("abc", "abc", True, False),
         ("abc", "def", False, False),
-        (None, None, False, False),
+        (None, "abc", False, False),
     ],
 )
 def test_already_synced(tmp_path, current_sha, request_sha, force, expected):
@@ -237,13 +237,13 @@ def test_already_synced_without_force(site, capsys):
     assert tree_files(site) == after_first
 
 
-def test_new_sha_with_same_content_is_written(site):
+def test_new_sha_with_same_content_is_no_changes(site):
     write(PLAN, make_request(site), synced_at=SYNCED_AT)
 
     outcome = write(PLAN, make_request(site, source_sha="def456"), synced_at=LATER)
 
-    assert outcome is WriteOutcome.WRITTEN
-    assert read_sync_state(site).current.source_sha == "def456"
+    assert outcome is WriteOutcome.NO_CHANGES
+    assert read_sync_state(site).current.source_sha == "abc123"
 
 
 def test_write_leaves_versions_json_untouched(site):

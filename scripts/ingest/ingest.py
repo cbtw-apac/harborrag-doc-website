@@ -47,13 +47,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     parser.add_argument(
         "--source-ref",
-        default=None,
+        required=True,
         help="Git reference used for ingestion.",
     )
 
     parser.add_argument(
         "--source-sha",
-        default=None,
+        required=True,
         help="Git commit SHA.",
     )
 

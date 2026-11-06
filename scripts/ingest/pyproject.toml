@@ -1,7 +1,7 @@
 [project]
 name = "harborrag-docs-ingest"
 version = "0.1.0"
-description = "Add your description here"
+description = "Sync HarborRAG's published Markdown docs into the Docusaurus site, with guards, link rewriting and atomic writes."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

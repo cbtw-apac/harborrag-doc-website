@@ -134,15 +134,8 @@ def updated_sync_state(state: SyncState, request: IngestRequest, *, synced_at: s
 
 
 def already_synced(state: SyncState, request: IngestRequest) -> bool:
-    """True when ``current.source_sha`` equals ``request.source_sha`` and not ``--force``.
-
-    A ``None`` sha (local run without ``--source-sha``) never counts as synced.
-    """
-    return (
-        not request.force
-        and request.source_sha is not None
-        and state.current.source_sha == request.source_sha
-    )
+    """True when ``current.source_sha`` equals ``request.source_sha`` and not ``--force``."""
+    return not request.force and state.current.source_sha == request.source_sha
 
 
 # --------------------------------------------------------------------------- tree
@@ -279,7 +272,7 @@ def write(
        Anything raised from here to step 5 must leave the site untouched and remove the
        staging dir (``try/finally``).
     4. Compare: staged tree == target tree AND rendered sidebars == current sidebars.ts
-       AND ``current.source_sha == request.source_sha`` -> print "no changes",
+       -> print "no changes",
        return ``NO_CHANGES`` without writing anything (not even sync-state: a new
        ``synced_at`` alone would make a diff and open a PR).
     5. ``swap_dir``, ``write_file_atomic`` sidebars.ts, then sync-state.json last
@@ -315,9 +308,8 @@ def write(
         )
 
         same_sidebars = current_sidebars == plan.sidebars_ts
-        same_sha = state.current.source_sha == request.source_sha
 
-        if same_tree and same_sidebars and same_sha:
+        if same_tree and same_sidebars:
             print("no changes")
             return WriteOutcome.NO_CHANGES
 
