@@ -126,19 +126,19 @@ jobs:
           token: ${{ secrets.DOCS_SYNC_TOKEN }}
           pull-request-number: ${{ steps.pr.outputs.pull-request-number }}
           merge-method: squash
-      - name: Approve pull request
-        # Branch protection needs one approval and GitHub forbids self-approval, so this must be a
-        # DIFFERENT account from the DOCS_SYNC_TOKEN owner. A second PAT avoids widening GITHUB_TOKEN
-        # (which would need the org-level "Allow GitHub Actions to create and approve pull requests").
-        # 'updated' is included so a refreshed PR is re-approved if stale reviews are dismissed.
-        if: |
-          steps.pr.outputs.pull-request-operation == 'created' ||
-          steps.pr.outputs.pull-request-operation == 'updated'
-        env:
-          GH_TOKEN: ${{ secrets.APPROVER_PAT }}
-          PR_NUMBER: ${{ steps.pr.outputs.pull-request-number }}
-        run: |
-          gh api --method POST "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews" -f event=APPROVE
+      # - name: Approve pull request
+      #   # Branch protection needs one approval and GitHub forbids self-approval, so this must be a
+      #   # DIFFERENT account from the DOCS_SYNC_TOKEN owner. A second PAT avoids widening GITHUB_TOKEN
+      #   # (which would need the org-level "Allow GitHub Actions to create and approve pull requests").
+      #   # 'updated' is included so a refreshed PR is re-approved if stale reviews are dismissed.
+      #   if: |
+      #     steps.pr.outputs.pull-request-operation == 'created' ||
+      #     steps.pr.outputs.pull-request-operation == 'updated'
+      #   env:
+      #     GH_TOKEN: ${{ secrets.APPROVER_PAT }}
+      #     PR_NUMBER: ${{ steps.pr.outputs.pull-request-number }}
+      #   run: |
+      #     gh api --method POST "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews" -f event=APPROVE
       - name: Notify Teams on failure
         if: failure()
         # Adaptive Card: what failed, with which inputs, and one-click links to the logs / PR / source commit.
