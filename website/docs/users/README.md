@@ -21,6 +21,7 @@ New here? Start with the [Quick Start](../getting-started/quick-start.md) -
 | Understand re-ingestion and retries | [Ingestion Modes](ingestion-modes.md) |
 | Fix something that broke | [Troubleshooting](troubleshooting/README.md) |
 | Upgrade an existing deployment | [Upgrading](upgrading.md) |
+| Testing row | [Upgrading](upgrading.md) |
 
 ## Configuration in detail
 
