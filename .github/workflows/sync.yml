@@ -79,22 +79,11 @@ jobs:
           [ -n "$SHA" ] || { echo "ref not found: $REF"; exit 1; }
           [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "unexpected ls-remote output: $SHA"; exit 1; }
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1     # HarborRAG, sparse
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1     # HarborRAG, full tree (links to files outside docs/ must exist)
         with:
           repository: cbtw-apac/HarborRAG
           ref: ${{ steps.src.outputs.sha }}
           path: source
-          sparse-checkout-cone-mode: false
-          sparse-checkout: |
-            docs
-            packages/*/README.md
-            packages/*/pyproject.toml
-            README.md
-            CHANGELOG.md
-            CONTRIBUTING.md
-            SECURITY.md
-            LICENSE
-            pyproject.toml
           persist-credentials: false
       - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with: { python-version: "3.12" }
