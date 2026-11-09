@@ -23,14 +23,13 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    if: github.event_name != 'push'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1  # this repo
         with: { path: site, persist-credentials: false }
       - name: Resolve source ref            # validates payload: repo, ref exists, sha matches
         id: src
         env:
-          REF: ${{ github.event.client_payload.ref || inputs.ref || 'main' }}
+          REF: ${{ github.event.client_payload.ref || inputs.ref || 'refs/heads/chore/add_docs_dispatch_workflow' }}
           SOURCE_REPO: ${{ github.event.client_payload.source_repo || 'cbtw-apac/HarborRAG' }}
           EXPECTED_SHA: ${{ github.event.client_payload.sha }}
           GH_TOKEN: ${{ github.token }}     # compare API; needs a PAT instead if HarborRAG is private
@@ -85,6 +84,7 @@ jobs:
           repository: cbtw-apac/HarborRAG
           ref: ${{ steps.src.outputs.sha }}
           path: source
+          sparse-checkout-cone-mode: false
           sparse-checkout: |
             docs
             packages/*/README.md
@@ -102,9 +102,9 @@ jobs:
         id: ingest
         working-directory: site/scripts/ingest
         env:
-          CHANNEL: ${{ github.event.client_payload.channel || inputs.channel }}
+          CHANNEL: ${{ github.event.client_payload.channel || inputs.channel || 'prerelease' }}
           PRODUCT_VERSION: ${{ github.event.client_payload.product_version || 'auto' }}
-          SOURCE_REF: ${{ github.event.client_payload.ref || inputs.ref }}
+          SOURCE_REF: ${{ github.event.client_payload.ref || inputs.ref || 'refs/heads/chore/add_docs_dispatch_workflow' }}
           SOURCE_SHA: ${{ steps.src.outputs.sha }}
           FORCE: ${{ inputs.force && '--force' || '' }}
         run: |
@@ -119,10 +119,10 @@ jobs:
         with:
           token: ${{ secrets.DOCS_SYNC_TOKEN }}             # bot identity so pr-check runs
           path: site
-          branch: sync/${{ github.event.client_payload.channel || inputs.channel }}-${{ github.event.client_payload.product_version || inputs.ref }}
+          branch: sync/${{ github.event.client_payload.channel || inputs.channel || 'prerelease' }}-${{ github.event.client_payload.product_version || inputs.ref || 'refs/heads/chore/add_docs_dispatch_workflow' }}
           delete-branch: true
-          commit-message: "sync: HarborRAG ${{ github.event.client_payload.ref || inputs.ref }} @ ${{ steps.src.outputs.sha }}"
-          title: "[sync] ${{ github.event.client_payload.channel || inputs.channel }} ← ${{ github.event.client_payload.ref || inputs.ref }}"
+          commit-message: "sync: HarborRAG ${{ github.event.client_payload.ref || inputs.ref || 'refs/heads/chore/add_docs_dispatch_workflow' }} @ ${{ steps.src.outputs.sha }}"
+          title: "[sync] ${{ github.event.client_payload.channel || inputs.channel || 'prerelease' }} ← ${{ github.event.client_payload.ref || inputs.ref || 'refs/heads/chore/add_docs_dispatch_workflow' }}"
           body: "Automated. Source: ${{ github.event.client_payload.run_url || 'manual/cron' }}. Content PRs belong in cbtw-apac/HarborRAG."
           labels: automation
       - if: steps.pr.outputs.pull-request-operation == 'created'
