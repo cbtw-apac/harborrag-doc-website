@@ -5,6 +5,10 @@ on:
   #   types: [harborrag-docs-sync]
   # schedule:
   #   - cron: "17 18 * * *"        # 01:17 Asia/Saigon nightly fallback
+  push:
+    branches:
+      - "**"
+  
   workflow_dispatch:
     inputs:
       ref:     { description: "HarborRAG ref (tag or main)", default: "main" }
@@ -20,6 +24,12 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
+      - name: Exit on push
+        if: github.event_name == 'push'
+        run: |
+          echo "Push event detected. Exiting workflow."
+          exit 0
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1  # this repo
         with: { path: site, persist-credentials: false }
       - name: Resolve source ref            # validates payload: repo, ref exists, sha matches
