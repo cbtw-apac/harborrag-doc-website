@@ -29,7 +29,7 @@ jobs:
       - name: Resolve source ref            # validates payload: repo, ref exists, sha matches
         id: src
         env:
-          REF: ${{ github.event.client_payload.ref || inputs.ref || 'refs/heads/chore/add_docs_dispatch_workflow' }}
+          REF: ${{ github.event.client_payload.ref || inputs.ref || 'refs/heads/test/add_docs_dispatch_workflow' }}
           SOURCE_REPO: ${{ github.event.client_payload.source_repo || 'cbtw-apac/HarborRAG' }}
           EXPECTED_SHA: ${{ github.event.client_payload.sha }}
           GH_TOKEN: ${{ github.token }}     # compare API; needs a PAT instead if HarborRAG is private
@@ -93,7 +93,7 @@ jobs:
         env:
           CHANNEL: ${{ github.event.client_payload.channel || inputs.channel || 'prerelease' }}
           PRODUCT_VERSION: ${{ github.event.client_payload.product_version || 'auto' }}
-          SOURCE_REF: ${{ github.event.client_payload.ref || inputs.ref || 'refs/heads/chore/add_docs_dispatch_workflow' }}
+          SOURCE_REF: ${{ github.event.client_payload.ref || inputs.ref || 'refs/heads/test/add_docs_dispatch_workflow' }}
           SOURCE_SHA: ${{ steps.src.outputs.sha }}
           FORCE: ${{ inputs.force && '--force' || '' }}
         run: |
@@ -108,10 +108,10 @@ jobs:
         with:
           token: ${{ secrets.DOCS_SYNC_TOKEN }}             # bot identity so pr-check runs
           path: site
-          branch: sync/${{ github.event.client_payload.channel || inputs.channel || 'prerelease' }}-${{ github.event.client_payload.product_version || inputs.ref || 'refs/heads/chore/add_docs_dispatch_workflow' }}
+          branch: sync/${{ github.event.client_payload.channel || inputs.channel || 'prerelease' }}-${{ github.event.client_payload.product_version || inputs.ref || 'refs/heads/test/add_docs_dispatch_workflow' }}
           delete-branch: true
-          commit-message: "sync: HarborRAG ${{ github.event.client_payload.ref || inputs.ref || 'refs/heads/chore/add_docs_dispatch_workflow' }} @ ${{ steps.src.outputs.sha }}"
-          title: "[sync] ${{ github.event.client_payload.channel || inputs.channel || 'prerelease' }} ← ${{ github.event.client_payload.ref || inputs.ref || 'refs/heads/chore/add_docs_dispatch_workflow' }}"
+          commit-message: "sync: HarborRAG ${{ github.event.client_payload.ref || inputs.ref || 'refs/heads/test/add_docs_dispatch_workflow' }} @ ${{ steps.src.outputs.sha }}"
+          title: "[sync] ${{ github.event.client_payload.channel || inputs.channel || 'prerelease' }} ← ${{ github.event.client_payload.ref || inputs.ref || 'refs/heads/test/add_docs_dispatch_workflow' }}"
           body: "Automated. Source: ${{ github.event.client_payload.run_url || 'manual/cron' }}. Content PRs belong in cbtw-apac/HarborRAG."
           labels: automation
       - if: steps.pr.outputs.pull-request-operation == 'created'
