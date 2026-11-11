@@ -1,0 +1,4 @@
+[project]
+name = "harborrag-workspace"
+version = "2.0.0a1"
+description = "A modular, provider-agnostic RAG framework for engineering knowledge with connectors, parsers, repositories, runtime, API, and MCP support"
