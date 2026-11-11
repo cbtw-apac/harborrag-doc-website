@@ -10,7 +10,9 @@ from ingest.models import Doc
 EDIT_URL_BASE = "https://github.com/cbtw-apac/HarborRAG/edit/main/"
 DESCRIPTION_MAX = 160
 H1_RE = re.compile(r"^#\s+(?P<title>.+?)(?:\s+#+)?\s*$")
-FENCE_RE = re.compile(r"^\s*(```|~~~)")
+#: Opening/closing code fence. A backtick fence's info string cannot contain a backtick
+#: (CommonMark), so a line starting with an inline span like ```` ```python ```` is prose.
+FENCE_RE = re.compile(r"^\s*(?:`{3,}(?!.*`)|~{3,})")
 ORDERED_ITEM_RE = re.compile(r"^\d+\.\s")
 #: Paragraphs starting with one of these are not prose
 NON_PROSE_PREFIXES = (
