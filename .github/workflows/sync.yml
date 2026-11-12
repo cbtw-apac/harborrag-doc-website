@@ -32,7 +32,7 @@ jobs:
     # ENV for logic testing cause to trigger the workflow_dispatch event, the workflow must be in the default branch first
     env:
       REF_TEST: "dev/v2.0.0"
-      CHANNEL_TEST: "main"
+      CHANNEL_TEST: "stable"
       FORCE_TEST: false
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1  # this repo
