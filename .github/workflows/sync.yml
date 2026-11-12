@@ -102,7 +102,7 @@ jobs:
           PRODUCT_VERSION: ${{ github.event.client_payload.product_version || 'auto' }}
           SOURCE_REF: ${{ github.event.client_payload.ref || inputs.ref || env.REF_TEST }}
           SOURCE_SHA: ${{ steps.src.outputs.sha }}
-          FORCE: ${{ inputs.force && '--force' || env.FORCE_TEST || '' }}
+          FORCE: ${{ inputs.force && '--force' || env.FORCE_TEST && '--force' || '' }}
         run: |
           uv run --locked ingest.py --source ../../../source --site ../../website \
             --channel "$CHANNEL" --product-version "$PRODUCT_VERSION" \
