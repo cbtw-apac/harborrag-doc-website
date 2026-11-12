@@ -5,6 +5,12 @@ on:
   #   types: [harborrag-docs-sync]
   # schedule:
   #   - cron: "17 18 * * *"        # 01:17 Asia/Saigon nightly fallback
+
+  # event for logic testing cause to trigger the workflow_dispatch event, the workflow must be in the default branch first
+  push:
+    branches:
+      - "test/manual-sync-workflow"
+  
   workflow_dispatch:
     inputs:
       ref:     { description: "HarborRAG ref (tag or main)", default: "main" }
@@ -19,13 +25,18 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    # ENV for logic testing cause to trigger the workflow_dispatch event, the workflow must be in the default branch first
+    env:
+      REF_TEST: "dev/v2.0.0"
+      CHANNEL_TEST: "prerelease"
+      FORCE_TEST: false
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1  # this repo
         with: { path: site, persist-credentials: false }
       - name: Resolve source ref            # validates payload: repo, ref exists, sha matches
         id: src
         env:
-          REF: ${{ github.event.client_payload.ref || inputs.ref || 'main' }}
+          REF: ${{ github.event.client_payload.ref || inputs.ref || env.REF_TEST || 'main' }}
           SOURCE_REPO: ${{ github.event.client_payload.source_repo || 'cbtw-apac/HarborRAG' }}
           EXPECTED_SHA: ${{ github.event.client_payload.sha }}
           GH_TOKEN: ${{ github.token }}     # compare API; needs a PAT instead if HarborRAG is private
@@ -87,11 +98,11 @@ jobs:
         id: ingest
         working-directory: site/scripts/ingest
         env:
-          CHANNEL: ${{ github.event.client_payload.channel || inputs.channel }}
+          CHANNEL: ${{ github.event.client_payload.channel || inputs.channel || env.CHANNEL_TEST }}
           PRODUCT_VERSION: ${{ github.event.client_payload.product_version || 'auto' }}
-          SOURCE_REF: ${{ github.event.client_payload.ref || inputs.ref }}
+          SOURCE_REF: ${{ github.event.client_payload.ref || inputs.ref || env.REF_TEST }}
           SOURCE_SHA: ${{ steps.src.outputs.sha }}
-          FORCE: ${{ inputs.force && '--force' || '' }}
+          FORCE: ${{ inputs.force && '--force' || env.FORCE_TEST || '' }}
         run: |
           uv run --locked ingest.py --source ../../../source --site ../../website \
             --channel "$CHANNEL" --product-version "$PRODUCT_VERSION" \
@@ -135,8 +146,8 @@ jobs:
         continue-on-error: true
         env:
           WEBHOOK: ${{ secrets.TEAMS_WEBHOOK_URL }}
-          CHANNEL: ${{ github.event.client_payload.channel || inputs.channel || 'main' }}
-          SOURCE_REF: ${{ github.event.client_payload.ref || inputs.ref || 'main' }}
+          CHANNEL: ${{ github.event.client_payload.channel || inputs.channel || env.CHANNEL_TEST || 'main' }}
+          SOURCE_REF: ${{ github.event.client_payload.ref || inputs.ref || env.REF_TEST || 'main' }}
           SOURCE_SHA: ${{ steps.src.outputs.sha }}
           PRODUCT_VERSION: ${{ github.event.client_payload.product_version || 'auto' }}
           PR_URL: ${{ steps.pr.outputs.pull-request-url }}
