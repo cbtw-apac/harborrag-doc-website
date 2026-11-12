@@ -29,7 +29,7 @@ jobs:
     env:
       REF_TEST: "dev/v2.0.0"
       CHANNEL_TEST: "prerelease"
-      FORCE_TEST: false
+      FORCE_TEST: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1  # this repo
         with: { path: site, persist-credentials: false }
@@ -115,10 +115,10 @@ jobs:
         with:
           token: ${{ secrets.DOCS_SYNC_TOKEN }}             # bot identity so pr-check runs
           path: site
-          branch: sync/${{ github.event.client_payload.channel || inputs.channel }}-${{ github.event.client_payload.product_version || inputs.ref }}
+          branch: sync/${{ github.event.client_payload.channel || inputs.channel || env.CHANNEL_TEST }}-${{ github.event.client_payload.product_version || inputs.ref || env.REF_TEST }}
           delete-branch: true
-          commit-message: "sync: HarborRAG ${{ github.event.client_payload.ref || inputs.ref }} @ ${{ steps.src.outputs.sha }}"
-          title: "[sync] ${{ github.event.client_payload.channel || inputs.channel }} ← ${{ github.event.client_payload.ref || inputs.ref }}"
+          commit-message: "sync: HarborRAG ${{ github.event.client_payload.ref || inputs.ref || env.CHANNEL_TEST }} @ ${{ steps.src.outputs.sha }}"
+          title: "[sync] ${{ github.event.client_payload.channel || inputs.channel || env.CHANNEL_TEST }} ← ${{ github.event.client_payload.ref || inputs.ref || env.REF_TEST }}"
           body: "Automated. Source: ${{ github.event.client_payload.run_url || 'manual/cron' }}. Content PRs belong in cbtw-apac/HarborRAG."
           labels: automation
       - if: steps.pr.outputs.pull-request-operation == 'created'
@@ -143,6 +143,7 @@ jobs:
       - name: Notify Teams on failure
         if: failure()
         # Adaptive Card: what failed, with which inputs, and one-click links to the logs / PR / source commit.
+        # ERROR: card cannot display
         continue-on-error: true
         env:
           WEBHOOK: ${{ secrets.TEAMS_WEBHOOK_URL }}
@@ -195,7 +196,7 @@ jobs:
                 content: {
                   type: "AdaptiveCard",
                   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-                  version: "1.6",
+                  version: "1.4",
                   msteams: { width: "full" },
                   body: [
                     {
