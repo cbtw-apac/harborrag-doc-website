@@ -33,7 +33,7 @@ jobs:
     env:
       REF_TEST: "dev/v2.0.0"
       CHANNEL_TEST: "prerelease"
-      FORCE_TEST: ''
+      FORCE_TEST: 'true'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1  # this repo
         with: { path: site, persist-credentials: false }
