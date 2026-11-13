@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     # ENV for logic testing cause to trigger the workflow_dispatch event, the workflow must be in the default branch first
     env:
-      REF_TEST: "main"
+      REF_TEST: "dev/2.0.0"
       CHANNEL_TEST: "main"
       FORCE_TEST: ''
     steps:
@@ -110,7 +110,7 @@ jobs:
         run: |
           FORCE_ARGS=()
           if [ -n "$FORCE" ]; then FORCE_ARGS+=("$FORCE"); fi
-          
+
           uv run --locked ingest.py --source ../../../source --site ../../website \
             --channel "$CHANNEL" --product-version "$PRODUCT_VERSION" \
             --source-ref "$SOURCE_REF" --source-sha "$SOURCE_SHA" "${FORCE_ARGS[@]}"
