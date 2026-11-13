@@ -1,0 +1,231 @@
+name: Sync docs from HarborRAG
+on:
+  # To be enabled in Phase 4
+  # repository_dispatch:
+  #   types: [harborrag-docs-sync]
+  # schedule:
+  #   - cron: "17 18 * * *"        # 01:17 Asia/Saigon nightly fallback
+  workflow_dispatch:
+    inputs:
+      ref:     { description: "HarborRAG ref (tag or main)", default: "main" }
+      channel: { type: choice, options: [main, prerelease, stable], default: main }
+      force:   { type: boolean, default: false }
+concurrency:
+  group: sync-${{ github.event.client_payload.channel || inputs.channel || 'cron' }}-${{ github.event.client_payload.product_version || inputs.ref || 'all' }}
+  cancel-in-progress: false
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1  # this repo
+        with: { path: site, persist-credentials: false }
+      - name: Resolve source ref            # validates payload: repo, ref exists, sha matches
+        id: src
+        env:
+          REF: ${{ github.event.client_payload.ref || inputs.ref || 'main' }}
+          SOURCE_REPO: ${{ github.event.client_payload.source_repo || 'cbtw-apac/HarborRAG' }}
+          EXPECTED_SHA: ${{ github.event.client_payload.sha }}
+          GH_TOKEN: ${{ github.token }}     # compare API; needs a PAT instead if HarborRAG is private
+        run: |
+          set -euo pipefail
+          [ "$SOURCE_REPO" = "cbtw-apac/HarborRAG" ] || { echo "unexpected source repo"; exit 1; }
+          URL=https://github.com/cbtw-apac/HarborRAG.git
+
+          # Ref names only; blocks ls-remote glob patterns (*, ?, [) that could match several refs
+          [[ "$REF" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "invalid ref: $REF"; exit 1; }
+          if [ -n "$EXPECTED_SHA" ]; then
+            [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "invalid sha: $EXPECTED_SHA"; exit 1; }
+          fi
+
+          # Keep the kind the caller asked for; a bare name tries tag first, then branch
+          case "$REF" in
+            refs/tags/*)  KINDS=tag;          NAME=${REF#refs/tags/} ;;
+            refs/heads/*) KINDS=branch;       NAME=${REF#refs/heads/} ;;
+            *)            KINDS="tag branch"; NAME=$REF ;;
+          esac
+
+          SHA=""
+          for KIND in $KINDS; do
+            if [ "$KIND" = tag ]; then
+              # Annotated tag: the peeled ^{} line is the commit; lightweight tag has no ^{} line
+              SHA=$(git ls-remote "$URL" "refs/tags/$NAME^{}" | cut -f1)
+              [ -n "$SHA" ] || SHA=$(git ls-remote "$URL" "refs/tags/$NAME" | cut -f1)
+              if [ -n "$SHA" ] && [ -n "$EXPECTED_SHA" ] && [ "$SHA" != "$EXPECTED_SHA" ]; then
+                echo "tag sha mismatch: expected=$EXPECTED_SHA actual=$SHA"; exit 1
+              fi
+            else
+              TIP=$(git ls-remote "$URL" "refs/heads/$NAME" | cut -f1)
+              if [ -n "$TIP" ] && [ -n "$EXPECTED_SHA" ]; then
+                # The branch may have moved on since dispatch; accept the payload sha only if it is on the branch
+                STATUS=$(gh api "repos/cbtw-apac/HarborRAG/compare/$EXPECTED_SHA...$TIP" --jq .status)
+                case "$STATUS" in
+                  identical|ahead) SHA=$EXPECTED_SHA ;;
+                  *) echo "sha $EXPECTED_SHA is not on $NAME (compare: $STATUS)"; exit 1 ;;
+                esac
+              else
+                SHA=$TIP
+              fi
+            fi
+            [ -z "$SHA" ] || break
+          done
+
+          [ -n "$SHA" ] || { echo "ref not found: $REF"; exit 1; }
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "unexpected ls-remote output: $SHA"; exit 1; }
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1     # HarborRAG, full tree (links to files outside docs/ must exist)
+        with:
+          repository: cbtw-apac/HarborRAG
+          ref: ${{ steps.src.outputs.sha }}
+          path: source
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with: { python-version: "3.12" }
+      - name: Ingest
+        id: ingest
+        working-directory: site/scripts/ingest
+        env:
+          CHANNEL: ${{ github.event.client_payload.channel || inputs.channel }}
+          PRODUCT_VERSION: ${{ github.event.client_payload.product_version || 'auto' }}
+          SOURCE_REF: ${{ github.event.client_payload.ref || inputs.ref }}
+          SOURCE_SHA: ${{ steps.src.outputs.sha }}
+          FORCE: ${{ inputs.force && '--force' || '' }}
+        run: |
+          FORCE_ARGS=()
+          if [ -n "$FORCE" ]; then FORCE_ARGS+=("$FORCE"); fi
+
+          uv run --locked ingest.py --source ../../../source --site ../../website \
+            --channel "$CHANNEL" --product-version "$PRODUCT_VERSION" \
+            --source-ref "$SOURCE_REF" --source-sha "$SOURCE_SHA" "${FORCE_ARGS[@]}"
+          echo "changed=$(git -C ../../ status --porcelain | grep -q . && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - name: Open / update sync PR
+        if: steps.ingest.outputs.changed == 'true'
+        id: pr
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ secrets.DOCS_SYNC_TOKEN }}             # bot identity so pr-check runs
+          path: site
+          branch: sync/${{ github.event.client_payload.channel || inputs.channel }}-${{ github.event.client_payload.product_version || inputs.ref }}
+          delete-branch: true
+          commit-message: "sync: HarborRAG ${{ github.event.client_payload.ref || inputs.ref }} @ ${{ steps.src.outputs.sha }}"
+          title: "[sync] ${{ github.event.client_payload.channel || inputs.channel }} ← ${{ github.event.client_payload.ref || inputs.ref }}"
+          body: "Automated. Source: ${{ github.event.client_payload.run_url || 'manual/cron' }}. Content PRs belong in cbtw-apac/HarborRAG."
+          labels: automation
+      - if: steps.pr.outputs.pull-request-operation == 'created'
+        uses: peter-evans/enable-pull-request-automerge@a660677d5469627102a1c1e11409dd063606628d # v3.0.0
+        with:
+          token: ${{ secrets.DOCS_SYNC_TOKEN }}
+          pull-request-number: ${{ steps.pr.outputs.pull-request-number }}
+          merge-method: squash
+      - name: Approve pull request
+        # Branch protection needs one approval and GitHub forbids self-approval, so this must be a
+        # DIFFERENT account from the DOCS_SYNC_TOKEN owner. A second PAT avoids widening GITHUB_TOKEN
+        # (which would need the org-level "Allow GitHub Actions to create and approve pull requests").
+        # 'updated' is included so a refreshed PR is re-approved if stale reviews are dismissed.
+        if: |
+          steps.pr.outputs.pull-request-operation == 'created' ||
+          steps.pr.outputs.pull-request-operation == 'updated'
+        env:
+          GH_TOKEN: ${{ secrets.APPROVER_PAT }}
+          PR_NUMBER: ${{ steps.pr.outputs.pull-request-number }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews" -f event=APPROVE
+      - name: Notify Teams on failure
+        if: failure()
+        # Adaptive Card: what failed, with which inputs, and one-click links to the logs / PR / source commit.
+        continue-on-error: true
+        env:
+          WEBHOOK: ${{ secrets.TEAMS_WEBHOOK_URL }}
+          CHANNEL: ${{ github.event.client_payload.channel || inputs.channel || 'main' }}
+          SOURCE_REF: ${{ github.event.client_payload.ref || inputs.ref || 'main' }}
+          SOURCE_SHA: ${{ steps.src.outputs.sha }}
+          PRODUCT_VERSION: ${{ github.event.client_payload.product_version || 'auto' }}
+          PR_URL: ${{ steps.pr.outputs.pull-request-url }}
+          PR_NUMBER: ${{ steps.pr.outputs.pull-request-number }}
+          REASON: ${{ github.event.client_payload.reason }}
+        run: |
+          set -euo pipefail
+          if [ -z "${WEBHOOK:-}" ]; then
+            echo "TEAMS_WEBHOOK_URL not set, skipping notification"
+            exit 0
+          fi
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          case "$GITHUB_EVENT_NAME" in
+            workflow_dispatch)   TRIGGER="Manual run" ;;
+            repository_dispatch)
+              case "${REASON:-}" in
+                release)           TRIGGER="HarborRAG release" ;;
+                push)              TRIGGER="HarborRAG docs push" ;;
+                workflow_dispatch) TRIGGER="HarborRAG manual dispatch" ;;
+                *)                 TRIGGER="HarborRAG dispatch" ;;
+              esac ;;
+            schedule)            TRIGGER="Nightly schedule" ;;
+            *)                   TRIGGER="$GITHUB_EVENT_NAME" ;;
+          esac
+          PAYLOAD=$(jq -n \
+            --arg repo "$GITHUB_REPOSITORY" \
+            --arg run_url "$RUN_URL" \
+            --arg run_no "$GITHUB_RUN_NUMBER" \
+            --arg attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg actor "$GITHUB_ACTOR" \
+            --arg trigger "$TRIGGER" \
+            --arg channel "$CHANNEL" \
+            --arg ref "$SOURCE_REF" \
+            --arg sha "${SOURCE_SHA:-}" \
+            --arg version "$PRODUCT_VERSION" \
+            --arg pr_url "${PR_URL:-}" \
+            --arg pr_no "${PR_NUMBER:-}" \
+            --arg time "$(TZ=Asia/Ho_Chi_Minh date '+%Y-%m-%d %H:%M (GMT+7)')" \
+            '
+            ($sha | if . == "" then "not resolved" else .[0:7] end) as $short_sha
+            | {
+              type: "message",
+              attachments: [{
+                contentType: "application/vnd.microsoft.card.adaptive",
+                content: {
+                  type: "AdaptiveCard",
+                  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                  version: "1.4",
+                  msteams: { width: "full" },
+                  body: [
+                    {
+                      type: "Container",
+                      style: "attention",
+                      bleed: true,
+                      items: [
+                        { type: "TextBlock", text: "❌ Documentation sync failed", weight: "Bolder", size: "Large", wrap: true },
+                        { type: "TextBlock", text: "\($repo) · run #\($run_no) (attempt \($attempt))", isSubtle: true, spacing: "None", wrap: true }
+                      ]
+                    },
+                    {
+                      type: "TextBlock",
+                      wrap: true,
+                      spacing: "Medium",
+                      text: "Hello team, the sync of HarborRAG docs into the documentation website did not complete. Could someone please take a look at the run logs? Thank you!"
+                    },
+                    {
+                      type: "FactSet",
+                      spacing: "Medium",
+                      facts: ([
+                        { title: "Channel",         value: $channel },
+                        { title: "Source ref",      value: $ref },
+                        { title: "Source commit",   value: $short_sha },
+                        { title: "Product version", value: $version },
+                        { title: "Trigger",         value: $trigger },
+                        { title: "Started by",      value: $actor },
+                        { title: "Reported at",     value: $time }
+                      ] + (if $pr_no != "" then [{ title: "Sync PR", value: "#\($pr_no)" }] else [] end))
+                    }
+                  ],
+                  actions: ([
+                    { type: "Action.OpenUrl", title: "View run logs", url: $run_url, style: "positive" }
+                  ]
+                  + (if $pr_url != "" then [{ type: "Action.OpenUrl", title: "Open sync PR", url: $pr_url }] else [] end)
+                  + (if $sha != "" then [{ type: "Action.OpenUrl", title: "View source commit", url: "https://github.com/cbtw-apac/HarborRAG/commit/\($sha)" }] else [] end))
+                }
+              }]
+            }')
+          curl --fail --silent --show-error --max-time 30 \
+            -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "$WEBHOOK"
