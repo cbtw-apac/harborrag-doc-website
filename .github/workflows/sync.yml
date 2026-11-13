@@ -108,9 +108,12 @@ jobs:
           SOURCE_SHA: ${{ steps.src.outputs.sha }}
           FORCE: ${{ inputs.force && '--force' || env.FORCE_TEST && '--force' || '' }}
         run: |
+          FORCE_ARGS=()
+          if [ -n "$FORCE" ]; then FORCE_ARGS+=("$FORCE"); fi
+          
           uv run --locked ingest.py --source ../../../source --site ../../website \
             --channel "$CHANNEL" --product-version "$PRODUCT_VERSION" \
-            --source-ref "$SOURCE_REF" --source-sha "$SOURCE_SHA" $FORCE
+            --source-ref "$SOURCE_REF" --source-sha "$SOURCE_SHA" "${FORCE_ARGS[@]}"
           echo "changed=$(git -C ../../ status --porcelain | grep -q . && echo true || echo false)" >> "$GITHUB_OUTPUT"
       - name: Open / update sync PR
         if: steps.ingest.outputs.changed == 'true'
