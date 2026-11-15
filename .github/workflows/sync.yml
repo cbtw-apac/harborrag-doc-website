@@ -149,13 +149,16 @@ jobs:
 
             echo "::group::$KEY ← $REF @ ${SHA:0:7} ($CHANNEL)"
             # Full tree at that commit, no history (links to files outside docs/ must exist)
-            rm -rf "$SRC" && git init -q "$SRC" \
-              && git -C "$SRC" fetch -q --depth 1 "$URL" "$SHA" \
-              && git -C "$SRC" checkout -q --detach FETCH_HEAD \
-              && uv run --locked ingest.py --source "$SRC" --site ../../website \
-                   --channel "$CHANNEL" --product-version "$VERSION" \
-                   --source-ref "$REF" --source-sha "$SHA" \
-              || { echo "::error::sync failed for $KEY ($REF)"; FAILED+=("$KEY"); }
+            if ! {
+              rm -rf "$SRC" && git init -q "$SRC" \
+                && git -C "$SRC" fetch -q --depth 1 "$URL" "$SHA" \
+                && git -C "$SRC" checkout -q --detach FETCH_HEAD \
+                && uv run --locked ingest.py --source "$SRC" --site ../../website \
+                     --channel "$CHANNEL" --product-version "$VERSION" \
+                     --source-ref "$REF" --source-sha "$SHA"
+            }; then
+              echo "::error::sync failed for $KEY ($REF)"; FAILED+=("$KEY")
+            fi
             echo "::endgroup::"
           done < <(jq -c '.[]' <<<"$TARGETS")
 
