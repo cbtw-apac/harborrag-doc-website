@@ -1,10 +1,10 @@
 {
   "current": {
     "label": "Next",
-    "channel": "main",
-    "source_ref": "refs/heads/test/add_docs_dispatch_workflow",
-    "source_sha": "71e7e92912d95e976259552f6cb9f652ca014ea1",
-    "synced_at": "2026-11-15T09:58:44Z"
+    "channel": "prerelease",
+    "source_ref": "harborrag-v2.0.0a2",
+    "source_sha": "d3efbafecc9c54f0d715baa0d11acaf3bea28ca5",
+    "synced_at": "2026-11-15T10:14:53Z"
   },
   "versions": {}
 }
