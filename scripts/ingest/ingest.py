@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import argparse
+import sys
 import tomllib
 from pathlib import Path
 
 from packaging.version import Version
 
 import ingest
+from ingest import discover
 from ingest.models import Channel, IngestRequest
+
+DISCOVER_FLAG = "--discover-stale"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -101,7 +105,14 @@ def resolve_product_version(source: Path, raw: str) -> str:
 def main() -> None:
     """
     Parse CLI arguments and execute the ingest workflow.
+
+    ``--discover-stale`` switches to discovery mode: the flag is stripped and the
+    remaining arguments go to ``ingest.discover`` (prints stale versions as JSON).
     """
+    if DISCOVER_FLAG in sys.argv[1:]:
+        rest = [a for a in sys.argv[1:] if a != DISCOVER_FLAG]
+        raise SystemExit(discover.main(rest))
+
     parser = build_parser()
     args = parser.parse_args()
 

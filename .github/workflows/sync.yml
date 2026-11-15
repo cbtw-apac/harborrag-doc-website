@@ -1,10 +1,9 @@
 name: Sync docs from HarborRAG
 on:
-  # To be enabled in Phase 4
-  # repository_dispatch:
-  #   types: [harborrag-docs-sync]
-  # schedule:
-  #   - cron: "17 18 * * *"        # 01:17 Asia/Saigon nightly fallback
+  repository_dispatch:
+    types: [harborrag-docs-sync]
+  schedule:
+    - cron: "17 18 * * *"        # 01:17 Asia/Saigon nightly fallback
   workflow_dispatch:
     inputs:
       ref:     { description: "HarborRAG ref (tag or main)", default: "main" }
@@ -22,16 +21,20 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1  # this repo
         with: { path: site, persist-credentials: false }
-      - name: Resolve source ref            # validates payload: repo, ref exists, sha matches
+      # ---- dispatch / manual: one version, taken from client_payload or inputs ----
+      - name: Resolve source ref            # validates payload: repo, channel, ref exists, sha matches
         id: src
+        if: github.event_name != 'schedule'
         env:
           REF: ${{ github.event.client_payload.ref || inputs.ref || 'main' }}
+          CHANNEL: ${{ github.event.client_payload.channel || inputs.channel }}
           SOURCE_REPO: ${{ github.event.client_payload.source_repo || 'cbtw-apac/HarborRAG' }}
           EXPECTED_SHA: ${{ github.event.client_payload.sha }}
           GH_TOKEN: ${{ github.token }}     # compare API; needs a PAT instead if HarborRAG is private
         run: |
           set -euo pipefail
           [ "$SOURCE_REPO" = "cbtw-apac/HarborRAG" ] || { echo "unexpected source repo"; exit 1; }
+          [[ "$CHANNEL" =~ ^(main|prerelease|stable)$ ]] || { echo "invalid channel: $CHANNEL"; exit 1; }
           URL=https://github.com/cbtw-apac/HarborRAG.git
 
           # Ref names only; blocks ls-remote glob patterns (*, ?, [) that could match several refs
@@ -76,6 +79,7 @@ jobs:
           [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "unexpected ls-remote output: $SHA"; exit 1; }
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1     # HarborRAG, full tree (links to files outside docs/ must exist)
+        if: github.event_name != 'schedule'
         with:
           repository: cbtw-apac/HarborRAG
           ref: ${{ steps.src.outputs.sha }}
@@ -85,6 +89,7 @@ jobs:
         with: { python-version: "3.12" }
       - name: Ingest
         id: ingest
+        if: github.event_name != 'schedule'
         working-directory: site/scripts/ingest
         env:
           CHANNEL: ${{ github.event.client_payload.channel || inputs.channel }}
@@ -100,17 +105,76 @@ jobs:
             --channel "$CHANNEL" --product-version "$PRODUCT_VERSION" \
             --source-ref "$SOURCE_REF" --source-sha "$SOURCE_SHA" "${FORCE_ARGS[@]}"
           echo "changed=$(git -C ../../ status --porcelain | grep -q . && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      # ---- schedule: reconcile every version against sync-state.json ----
+      # Expected set = {current: tip of main, "X.Y": newest stable harborrag-vX.Y.Z (keep-minors)}.
+      # Pre-release tags are not in it: Next follows main.
+      - name: Discover stale versions
+        id: discover
+        if: github.event_name == 'schedule'
+        working-directory: site/scripts/ingest
+        run: |
+          set -euo pipefail
+          TARGETS=$(uv run --locked ingest.py --discover-stale --site ../../website)
+          echo "targets=$TARGETS" >> "$GITHUB_OUTPUT"
+          echo "count=$(jq length <<<"$TARGETS")" >> "$GITHUB_OUTPUT"
+      - name: Reconcile stale versions
+        id: reconcile
+        if: github.event_name == 'schedule' && steps.discover.outputs.count != '0'
+        working-directory: site/scripts/ingest
+        env:
+          TARGETS: ${{ steps.discover.outputs.targets }}
+        run: |
+          set -euo pipefail
+          URL=https://github.com/cbtw-apac/HarborRAG.git
+          SRC="$RUNNER_TEMP/source"
+          FAILED=()
+
+          # One job, one PR: targets run in order (Next, then minor lines oldest first) so each
+          # ingest sees the previous one's sync-state.json / versions.json. A failing target is
+          # recorded and skipped so the others still land; the job fails after the PR step.
+          while IFS= read -r ITEM; do
+            KEY=$(jq -r .key <<<"$ITEM")
+            REF=$(jq -r .ref <<<"$ITEM")
+            SHA=$(jq -r .sha <<<"$ITEM")
+            CHANNEL=$(jq -r .channel <<<"$ITEM")
+            VERSION=$(jq -r .product_version <<<"$ITEM")
+
+            # Built by discover.py from ls-remote output; still validated before use
+            if ! { [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] \
+                && [[ "$REF" =~ ^refs/(heads|tags)/[A-Za-z0-9._/-]+$ ]] \
+                && [[ "$CHANNEL" =~ ^(main|prerelease|stable)$ ]] \
+                && [[ "$VERSION" =~ ^[A-Za-z0-9.+-]+$ ]]; }; then
+              echo "::error::invalid target: $ITEM"; FAILED+=("$KEY"); continue
+            fi
+
+            echo "::group::$KEY ← $REF @ ${SHA:0:7} ($CHANNEL)"
+            # Full tree at that commit, no history (links to files outside docs/ must exist)
+            if ! {
+              rm -rf "$SRC" && git init -q "$SRC" \
+                && git -C "$SRC" fetch -q --depth 1 "$URL" "$SHA" \
+                && git -C "$SRC" checkout -q --detach FETCH_HEAD \
+                && uv run --locked ingest.py --source "$SRC" --site ../../website \
+                     --channel "$CHANNEL" --product-version "$VERSION" \
+                     --source-ref "$REF" --source-sha "$SHA"
+            }; then
+              echo "::error::sync failed for $KEY ($REF)"; FAILED+=("$KEY")
+            fi
+            echo "::endgroup::"
+          done < <(jq -c '.[]' <<<"$TARGETS")
+
+          echo "changed=$(git -C ../../ status --porcelain | grep -q . && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "failed=${FAILED[*]}" >> "$GITHUB_OUTPUT"
       - name: Open / update sync PR
-        if: steps.ingest.outputs.changed == 'true'
+        if: steps.ingest.outputs.changed == 'true' || steps.reconcile.outputs.changed == 'true'
         id: pr
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
           token: ${{ secrets.DOCS_SYNC_TOKEN }}             # bot identity so pr-check runs
           path: site
-          branch: sync/${{ github.event.client_payload.channel || inputs.channel }}-${{ github.event.client_payload.product_version || inputs.ref }}
+          branch: ${{ github.event_name == 'schedule' && 'sync/reconcile' || format('sync/{0}-{1}', github.event.client_payload.channel || inputs.channel, github.event.client_payload.product_version || inputs.ref) }}
           delete-branch: true
-          commit-message: "sync: HarborRAG ${{ github.event.client_payload.ref || inputs.ref }} @ ${{ steps.src.outputs.sha }}"
-          title: "[sync] ${{ github.event.client_payload.channel || inputs.channel }} ← ${{ github.event.client_payload.ref || inputs.ref }}"
+          commit-message: "${{ github.event_name == 'schedule' && 'sync: nightly reconcile with HarborRAG' || format('sync: HarborRAG {0} @ {1}', github.event.client_payload.ref || inputs.ref, steps.src.outputs.sha) }}"
+          title: "${{ github.event_name == 'schedule' && '[sync] nightly reconcile' || format('[sync] {0} ← {1}', github.event.client_payload.channel || inputs.channel, github.event.client_payload.ref || inputs.ref) }}"
           body: "Automated. Source: ${{ github.event.client_payload.run_url || 'manual/cron' }}. Content PRs belong in cbtw-apac/HarborRAG."
           labels: automation
       - if: steps.pr.outputs.pull-request-operation == 'created'
@@ -132,6 +196,13 @@ jobs:
           PR_NUMBER: ${{ steps.pr.outputs.pull-request-number }}
         run: |
           gh api --method POST "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews" -f event=APPROVE
+      - name: Fail if a version could not be reconciled
+        if: steps.reconcile.outputs.failed != ''
+        env:
+          FAILED: ${{ steps.reconcile.outputs.failed }}
+        run: |
+          echo "::error::not synced: $FAILED (see the Reconcile step log)"
+          exit 1
       - name: Notify Teams on failure
         if: failure()
         # Adaptive Card: what failed, with which inputs, and one-click links to the logs / PR / source commit.
