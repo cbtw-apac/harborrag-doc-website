@@ -52,7 +52,7 @@ def test_sort_minors_deduplicates():
     assert sort_minors(["2.0", "2.0", "2.1"]) == ["2.1", "2.0"]
 
 
-@pytest.mark.parametrize("bad", ["2.0.1", "2", "v2.0", "latest"])
+@pytest.mark.parametrize("bad", ["2.0.1", "2", "v2.0", "latest", "2.01"])
 def test_sort_minors_rejects_non_minor_labels(bad: str):
     with pytest.raises(ValueError, match="(?i)major.minor"):
         sort_minors([bad])
@@ -75,14 +75,22 @@ def test_render_versions_is_json_with_trailing_newline():
     assert render_versions(["2.1", "2.0"]) == '[\n  "2.1",\n  "2.0"\n]\n'
     assert render_versions([]) == "[]\n"
 
+def test_render_versions_sorts_newest_first_whatever_the_input_order():
+    assert render_versions(["2.0", "2.10", "2.9"]) == '[\n  "2.10",\n  "2.9",\n  "2.0"\n]\n'
 
-@pytest.mark.parametrize("content", ['{"2.0": 1}', '["2.0.1"]', "[2]", '["latest"]'])
+@pytest.mark.parametrize("content", ['{"2.0": 1}', '["2.0.1"]', "[2]", '["latest"]', '["2.01"]'])
 def test_read_versions_rejects_malformed_files(tmp_path: Path, content: str):
     (tmp_path / "versions.json").write_text(content, encoding="utf-8")
 
     with pytest.raises(ValueError):
         read_versions(tmp_path)
 
+@pytest.mark.parametrize("content", ["", "[", "not json"])
+def test_read_versions_reports_invalid_json_with_its_path(tmp_path: Path, content: str):
+    (tmp_path / "versions.json").write_text(content, encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"versions\.json: invalid JSON"):
+        read_versions(tmp_path)
 
 # --------------------------------------------------------------------------- plan_versions()
 
