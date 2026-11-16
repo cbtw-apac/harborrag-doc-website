@@ -105,14 +105,6 @@ def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
 
-    if args.channel == Channel.STABLE:
-        raise SystemExit("""
-===============================================
-ERROR: Stable snapshots are not available yet.
-       This feature will land in Phase 5.
-===============================================
-""")
-
     source = Path(args.source)
     product_version = resolve_product_version(source, args.product_version)
 

@@ -19,7 +19,6 @@ from ingest.toc import (
     render_versioned_sidebars,
     to_sidebar_items,
     toc_link_mapping,
-    write_versioned_sidebars,
 )
 
 FIXTURE = Path(__file__).parent / "fixtures" / "mini_harborrag"
@@ -246,20 +245,15 @@ def test_render_versioned_sidebars_is_docs_json_matching_sidebars_ts():
     assert out.endswith("}\n")
 
 
-def test_write_versioned_sidebars_writes_docusaurus_path(tmp_path):
+def test_render_versioned_sidebars_is_docs_sidebar_json():
     toc = [Category("A", [DocItem("X", "x")])]
 
-    path = write_versioned_sidebars(tmp_path, "2.0", toc)
+    out = render_versioned_sidebars(toc)
 
-    assert path == tmp_path / "versioned_sidebars" / "version-2.0-sidebars.json"
-    assert path.read_text(encoding="utf-8") == render_versioned_sidebars(toc)
-
-
-@pytest.mark.parametrize("version", ["2.0.1", "2", "v2.0", "../2.0"])
-def test_write_versioned_sidebars_rejects_non_minor_version(tmp_path, version):
-    with pytest.raises(ValueError, match="MAJOR.MINOR"):
-        write_versioned_sidebars(tmp_path, version, [])
-    assert not (tmp_path / "versioned_sidebars").exists()
+    assert out.endswith("\n") and not out.endswith("\n\n")
+    data = json.loads(out)
+    assert list(data) == ["docs"]  # same sidebar key as sidebars.ts (navbar sidebarId)
+    assert data["docs"] == to_sidebar_items(toc)
 
 
 # --------------------------------------------------------------------------- TOC.md links

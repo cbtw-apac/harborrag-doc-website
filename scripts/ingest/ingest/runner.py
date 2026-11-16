@@ -10,7 +10,12 @@ from ingest.frontmatter import apply_frontmatter, render
 from ingest.links import apply_links
 from ingest.mdx import find_mdx_unsafe, mdx_sanitize
 from ingest.models import Doc, IngestRequest
-from ingest.toc import load_toc, render_sidebars_ts, toc_link_mapping
+from ingest.toc import (
+    load_toc,
+    render_sidebars_ts,
+    render_versioned_sidebars,
+    toc_link_mapping,
+)
 
 DENY_FILE = Path(__file__).resolve().parent.parent / "deny.txt"
 DOCS_DIR = Path("docs")
@@ -84,6 +89,7 @@ def build_plan(request: IngestRequest) -> writer.WritePlan:
     return writer.WritePlan(
         pages={PurePosixPath(d.target_path.as_posix()): render(d) for d in docs},
         sidebars_ts=render_sidebars_ts(toc),
+        sidebars_json=render_versioned_sidebars(toc),
     )
 
 
