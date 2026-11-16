@@ -472,7 +472,8 @@ Follow `02_…` §10: set `DOCS_SITE_URL` in HarborRAG; remove `stage-pages`/`de
 | 2.10 First real sync | ✅ | Added `mdx.py` (autolinks → Markdown links, void tags self-closed, HTML comments → `{/* */}`, inline code untouched); `--product-version auto` in `make sync-local`/`sync-stable`; navbar Architecture/MCP/Changelog restored by `docId` (version-independent); placeholder `docs/index.md` removed. Synced HarborRAG `217521ac`: 28 docs + 4 project + 8 package pages; 142 tests pass; `pnpm build` green; re-running `make sync-local` → `no changes`. |
 | 3 sync.yml manual | ☐ | needs accounts A/B |
 | 4 dispatch + cron | ☐ | needs HarborRAG admin for secret |
-| 5 versioned snapshots | ☐ | real snapshot at 2.0.0 |
+| 5.1 Stable channel in the writer | ✅ | `versions.py` (minor, sort, `versions.json` read/render, `plan_versions` retention); `writer.py` stable branch → `versioned_docs/version-X.Y/` + `versioned_sidebars/version-X.Y-sidebars.json`, prune to `--keep-minors`, `sync-state.versions["X.Y"]` with full patch label, patch with unchanged docs still relabels; `toc.render_versioned_sidebars`; stable guard removed from `ingest.py`; `make sync-stable` records `TAG^{commit}` |
+| 5.2 First stable snapshot | ☐ | real snapshot at 2.0.0; plan command blocked by version/channel check and branding guard on `harborrag-v2.0.0a1` — local check uses Next's commit + `--product-version 2.0.0` |
 | 6 landing | ☐ | font licence decision open |
 | 7 cut-over | ☐ | with 2.0.0 |
 
