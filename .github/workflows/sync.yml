@@ -4,7 +4,7 @@ on:
     types: [harborrag-docs-sync]
   schedule:
     # - cron: "17 18 * * *"        # 01:17 Asia/Saigon nightly fallback
-    - cron: "*/5 * * * *" # Run every 5 minutes
+    - cron: "*/5 * * * *" # Run every 5 minutes for testing
   workflow_dispatch:
     inputs:
       ref:     { description: "HarborRAG ref (tag or main)", default: "main" }
