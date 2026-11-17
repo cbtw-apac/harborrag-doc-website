@@ -429,7 +429,22 @@ Tests: two stable ingests (2.0 then 2.1) produce `["2.1","2.0"]`; a third (2.2) 
 
 ### 5.2 First stable snapshot — at the 2.0.0 release
 
-Until then, test the path with `make sync-stable TAG=harborrag-v2.0.0a1` **plus** `--channel stable` forced (the tag is a pre-release, so the real pipeline would route it to `Next`). Verify `/docs/` now routes to `2.0` and `/docs/next/` to `Next`, then `git checkout -- website` to discard the fake snapshot.
+Until then, test the path locally. `make sync-stable TAG=harborrag-v2.0.0a1` does not work: `ingest.py` rejects a pre-release on `--channel stable`, and that tag's pre-rename content fails the branding guard. Instead, snapshot the commit Next is synced from, with an explicit final version:
+
+```bash
+SHA=<current.source_sha from website/sync-state.json>
+git -C ../HarborRAG fetch && git -C ../HarborRAG checkout $SHA
+cd scripts/ingest && uv run ingest.py --source <abs path to HarborRAG> --site ../../website \
+  --channel stable --product-version 2.0.0 --source-ref local-test --source-sha $SHA
+cd ../.. && make build && (cd website && pnpm serve)
+```
+
+Verify `/docs/` routes to `2.0` and `/docs/next/` to `Next`. Optionally ingest `1.9.0` (unmaintained banner) and `2.1.0` (prunes `1.9` with `--keep-minors 2`). Then discard the fake snapshot — `checkout` alone leaves the new folders behind:
+
+```bash
+git checkout -- website && git clean -fd website
+git -C ../HarborRAG switch main
+```
 
 **Phase 5 exit:** release day needs no manual step.
 
@@ -473,7 +488,7 @@ Follow `02_…` §10: set `DOCS_SITE_URL` in HarborRAG; remove `stage-pages`/`de
 | 3 sync.yml manual | ☐ | needs accounts A/B |
 | 4 dispatch + cron | ☐ | needs HarborRAG admin for secret |
 | 5.1 Stable channel in the writer | ✅ | `versions.py` (minor, sort, `versions.json` read/render, `plan_versions` retention); `writer.py` stable branch → `versioned_docs/version-X.Y/` + `versioned_sidebars/version-X.Y-sidebars.json`, prune to `--keep-minors`, `sync-state.versions["X.Y"]` with full patch label, patch with unchanged docs still relabels; `toc.render_versioned_sidebars`; stable guard removed from `ingest.py`; `make sync-stable` records `TAG^{commit}` |
-| 5.2 First stable snapshot | ☐ | real snapshot at 2.0.0; plan command blocked by version/channel check and branding guard on `harborrag-v2.0.0a1` — local check uses Next's commit + `--product-version 2.0.0` |
+| 5.2 First stable snapshot | 🟡 | Local check ✅ (16 Nov): snapshot from Next's commit `3d8be1c0` with `--product-version 2.0.0` → `version-2.0/`, `versions.json ["2.0"]`, strict build green, `/docs/` → 2.0.0, `/docs/next/` → Next; + 1.9.0 shows the unmaintained banner; + 2.1.0 (keep 2) prunes 1.9 (`/docs/1.9/` 404) and moves 2.0 to `/docs/2.0/` with the unmaintained banner; snapshot discarded. Plan command does not run as written (`harborrag-v2.0.0a1` fails the version/channel check and the branding guard). Real snapshot pending the `harborrag-v2.0.0` release. |
 | 6 landing | ☐ | font licence decision open |
 | 7 cut-over | ☐ | with 2.0.0 |
 
