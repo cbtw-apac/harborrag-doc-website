@@ -49,7 +49,7 @@ sync-stable:  ## ingest a release tag into a versioned snapshot; needs TAG=
 	@test -n "$(TAG)" || { echo "TAG is required, e.g. make sync-stable TAG=harborrag-v2.0.0"; exit 1; }
 	cd $(INGEST) && uv run ingest.py \
 	  --source $(abspath $(HARBORRAG)) --site ../../$(SITE) --channel stable --product-version auto \
-	  --source-ref refs/tags/$(TAG) --source-sha $$(git -C $(abspath $(HARBORRAG)) rev-parse $(TAG))
+	  --source-ref refs/tags/$(TAG) --source-sha $$(git -C $(abspath $(HARBORRAG)) rev-parse $(TAG)^{commit})
 
 clean:  ## remove build output and caches
 	rm -rf $(SITE)/build $(SITE)/.docusaurus

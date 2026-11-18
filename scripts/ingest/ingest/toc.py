@@ -6,7 +6,7 @@ import re
 import textwrap
 from collections.abc import Collection, Mapping
 from dataclasses import dataclass, field
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PurePath, PurePosixPath
 
 TOC_FILE = Path("docs") / "TOC.md"
 EXTERNAL_LINKS: dict[str, str] = {
@@ -17,7 +17,6 @@ ITEM_RE = re.compile(r"^(?P<indent>[ ]*)-\s+\[(?P<label>[^\]]+)\]\((?P<target>[^
 INDENT = 2
 ABSOLUTE_URL = re.compile(r"^[a-z][a-z0-9+.-]*://", re.IGNORECASE)
 ANCHOR = re.compile(r"^#")
-MINOR_VERSION_RE = re.compile(r"\d+\.\d+")  # Docusaurus version labels are minors: "2.0"
 
 
 class TocError(ValueError):
@@ -128,6 +127,11 @@ def parse_toc(
             parent, or indentation that is not a multiple of ``INDENT`` / too deep.
     """
     categories: list[Category] = []
+
+    # collect() returns WindowsPath on Windows, which never equals a PurePosixPath
+    # even for the same string; normalise once so lookups work on every OS.
+    if pages is not None:
+        pages = {PurePosixPath(PurePath(p).as_posix()) for p in pages}
 
     for line_no, line in enumerate(text.splitlines(), start=1):
         heading = HEADING_RE.match(line)
@@ -296,22 +300,3 @@ def render_sidebars_ts(toc: list[Category]) -> str:
 def render_versioned_sidebars(toc: list[Category]) -> str:
     """Render ``versioned_sidebars/version-X.Y-sidebars.json`` content."""
     return json.dumps({"docs": to_sidebar_items(toc)}, indent=2, ensure_ascii=False) + "\n"
-
-
-def write_versioned_sidebars(site: Path, version: str, toc: list[Category]) -> Path:
-    """Write ``site / versioned_sidebars / version-{version}-sidebars.json`` and return its path.
-
-    ``version`` is the minor label, e.g. ``"2.0"``; a full version such as ``"2.0.1"``
-    would create a file Docusaurus never reads, so it is rejected.
-
-    Raises:
-        ValueError: ``version`` is not ``MAJOR.MINOR``.
-    """
-    if not MINOR_VERSION_RE.fullmatch(version):
-        raise ValueError(f"expected a MAJOR.MINOR version label like '2.0', got {version!r}")
-
-    path = site / "versioned_sidebars" / f"version-{version}-sidebars.json"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(render_versioned_sidebars(toc), encoding="utf-8")
-
-    return path
