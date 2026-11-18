@@ -156,6 +156,7 @@ same in this repository and in 2.0.0a2.
 | `harborrag[s3]` | `aiobotocore` | S3 artifact storage |
 | `harborrag[redis]` | `redis` | Redis-backed features |
 | `harborrag[all]` | every extra above | you want the full surface |
+| `Test` | TEST | TEST |
 
 Extras combine, so install exactly the set you need:
 
