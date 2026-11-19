@@ -58,15 +58,15 @@ export default {
             },
             {
               "type": "doc",
-              "id": "users/chat/agent",
-              "label": "Agent"
-            },
-            {
-              "type": "doc",
               "id": "users/chat/limits",
               "label": "Limits and Accounting"
             }
           ]
+        },
+        {
+          "type": "doc",
+          "id": "users/connections",
+          "label": "Connections"
         },
         {
           "type": "doc",
@@ -108,8 +108,23 @@ export default {
             },
             {
               "type": "doc",
+              "id": "users/configuration/chunking-config",
+              "label": "Chunking Configuration"
+            },
+            {
+              "type": "doc",
+              "id": "users/configuration/graph-build-config",
+              "label": "Graph Build Configuration"
+            },
+            {
+              "type": "doc",
               "id": "users/configuration/model-config",
               "label": "Model Configuration"
+            },
+            {
+              "type": "doc",
+              "id": "users/configuration/runtime-settings",
+              "label": "Runtime Settings"
             },
             {
               "type": "doc",
