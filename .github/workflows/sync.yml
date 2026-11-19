@@ -3,7 +3,8 @@ on:
   repository_dispatch:
     types: [harborrag-docs-sync]
   schedule:
-    - cron: "17 18 * * *"        # 01:17 Asia/Saigon nightly fallback
+    # - cron: "17 18 * * *"        # 01:17 Asia/Saigon nightly fallback
+    - cron: "*/15 * * * *" # Runs every 15 minutes
   workflow_dispatch:
     inputs:
       ref:     { description: "HarborRAG ref (tag or main)", default: "main" }
