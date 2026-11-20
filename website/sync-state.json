@@ -2,9 +2,9 @@
   "current": {
     "label": "Next",
     "channel": "main",
-    "source_ref": "refs/heads/test/add_docs_dispatch_workflow",
-    "source_sha": "0d5c0571db42a853937119174f9c898f7d7fadb8",
-    "synced_at": "2026-11-19T15:45:15Z"
+    "source_ref": "refs/heads/main",
+    "source_sha": "dc001f49baf19bf084dc5a444f773a0095022fff",
+    "synced_at": "2026-11-20T00:37:40Z"
   },
   "versions": {}
 }
