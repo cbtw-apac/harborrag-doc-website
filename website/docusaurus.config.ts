@@ -154,7 +154,7 @@ const config: Config = {
   ],
 
   themeConfig: {
-    image: "img/logo.svg",
+    image: "img/social-card.png",
     colorMode: { defaultMode: "dark", respectPrefersColorScheme: true },
     navbar: {
       title: "HarborRAG",
