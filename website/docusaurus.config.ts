@@ -1,10 +1,11 @@
 import type { VersionOptions } from "@docusaurus/plugin-content-docs";
 import type * as Preset from "@docusaurus/preset-classic";
 import type { Config } from "@docusaurus/types";
-import { themes as prismThemes } from "prism-react-renderer";
 
 import { PYPI, SOURCE_REPO } from "./src/lib/site";
 import { versions, syncState } from "./src/lib/syncState";
+import prismTheme from "./src/lib/prismTheme";
+import rehypeTableScroll from "./src/lib/rehypeTableScroll";
 
 const latest = versions[0]; // string | undefined until the first stable sync
 
@@ -86,6 +87,9 @@ const config: Config = {
             },
             ...versionOptions,
           },
+          sidebarCollapsible: false, // HarborRAG's rail is a flat, always-open list
+          breadcrumbs: false, // HarborRAG doc pages have none
+          rehypePlugins: [rehypeTableScroll],
         },
         blog: false,
         theme: { customCss: "./src/css/custom.css" },
@@ -141,11 +145,11 @@ const config: Config = {
       copyright: `© ${new Date().getFullYear()} CBTW.`,
     },
     prism: {
-      theme: prismThemes.github,
-      darkTheme: prismThemes.dracula,
+      theme: prismTheme,
       additionalLanguages: ["bash", "json", "toml", "yaml", "python"],
     },
   } satisfies Preset.ThemeConfig,
+  clientModules: ["./src/clientModules/numberedSteps.ts"],
 };
 
 export default config;

@@ -1,0 +1,222 @@
+.theme-doc-sidebar-menu .menu__link {
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-family: var(--hr-font-2);
+  font-size: 14px;
+  line-height: 1.35;
+  color: var(--hr-text-muted);
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+.theme-doc-sidebar-menu .menu__link:hover {
+  background: var(--hr-tertiary-bg);
+  color: var(--hr-text);
+}
+.theme-doc-sidebar-menu .menu__link--active:not(.menu__link--sublist) {
+  background: var(--hr-tertiary-bg);
+  color: var(--hr-primary);
+  font-weight: 600;
+}
+/* Level-1 categories are the section headings (.docs-nav-heading) */
+.theme-doc-sidebar-item-category-level-1
+  > .menu__list-item-collapsible
+  > .menu__link {
+  min-height: 44px;
+  font-family: var(--hr-font);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  color: var(--hr-text);
+}
+.theme-doc-sidebar-item-category-level-1
+  + .theme-doc-sidebar-item-category-level-1 {
+  margin-top: 8px;
+}
+
+.plugin-docs main > .container {
+  padding: 3.25rem 5rem;
+}
+@media (max-width: 560px) {
+  .plugin-docs main > .container {
+    padding: 3.25rem 2rem;
+  }
+}
+
+.theme-doc-markdown :is(h1, h2, h3, h4, h5, h6) {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+.theme-doc-markdown header:first-child h1 {
+  margin-top: 0;
+}
+.theme-doc-markdown p {
+  margin-bottom: 5px;
+  text-align: justify;
+}
+
+.theme-doc-markdown :not(pre) > code {
+  padding: 0.125rem 0.25rem;
+  border: 0;
+  border-radius: 0.25rem;
+  color: #d63384;
+}
+
+/* Builder output: <blockquote class="alert alert-info"> */
+.theme-doc-markdown blockquote {
+  padding: 1rem;
+  border-left: 4px solid var(--hr-primary);
+  border-radius: 0.375rem;
+  background: var(--hr-tertiary-bg);
+  color: var(--hr-text);
+}
+
+/* Builder output: .table-scroll wrapper + tinted header */
+.theme-doc-markdown .table-scroll {
+  overflow-x: auto;
+  margin-bottom: var(--ifm-spacing-vertical);
+  border: 1px solid var(--hr-tertiary-bg);
+  border-radius: 12px;
+}
+.theme-doc-markdown .table-scroll table {
+  display: table; /* Infima makes tables block-level to scroll; the wrapper does that now */
+  width: 100%; /* acts as a minimum: narrow tables fill, wide ones overflow and scroll */
+  margin: 0;
+  border: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.theme-doc-markdown thead tr {
+  background: var(--hr-tertiary-bg);
+  text-align: left;
+}
+.theme-doc-markdown :is(tr, td, th) {
+  border: none;
+}
+
+/* Builder output: every <ul> is a Bootstrap list-group */
+.theme-doc-markdown ul {
+  padding-left: 0;
+  margin-bottom: 1.5rem;
+}
+.theme-doc-markdown ul > li {
+  list-style: none;
+  margin: 0.25rem 0;
+  padding: 10px;
+  border-left: 3px solid var(--hr-primary);
+  border-bottom: 1px solid var(--hr-border);
+  border-radius: 0.25rem;
+  background: var(--hr-surface-muted);
+}
+
+/* Builder output: every <ol> is a numbered step list; numbers set by numberedSteps.ts */
+.theme-doc-markdown ol:has(> li[data-step]) {
+  padding-left: 0;
+}
+.theme-doc-markdown ol > li[data-step] {
+  position: relative;
+  list-style: none;
+  margin-bottom: 4px;
+  padding: 15px 20px 15px 60px;
+  border: 1px solid #dee2e6;
+  border-left: 4px solid var(--hr-primary);
+  border-radius: 8px;
+  background: var(--hr-surface-muted);
+}
+.theme-doc-markdown ol > li[data-step]::before {
+  content: attr(data-step);
+  position: absolute;
+  top: 50%;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--hr-primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  transform: translateY(-50%);
+}
+
+.theme-code-block {
+  --prism-background-color: #141414;
+  position: relative;
+  padding-top: 34px; /* title bar */
+  overflow: hidden;
+  border: 1px solid #050505;
+  border-radius: 12px;
+  background: #141414;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.32),
+    0 18px 40px -18px rgba(0, 0, 0, 0.6);
+}
+.theme-code-block::before {
+  /* title bar */
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 34px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: #202020;
+}
+.theme-code-block::after {
+  /* three window controls: one dot + two offset shadows */
+  content: "";
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #b3574d;
+  box-shadow:
+    16px 0 0 #b28e4a,
+    32px 0 0 #4f8a68;
+}
+.theme-code-block code {
+  font-size: 16px;
+  line-height: 22px;
+}
+
+/* "unreleased" (Next on a prerelease channel) and "unmaintained" (older stable) */
+.theme-doc-version-banner {
+  border: 0;
+  border-left: 4px solid var(--hr-primary);
+  border-radius: 8px;
+  background: var(--hr-tertiary-bg);
+  color: var(--hr-text);
+}
+.theme-doc-version-banner a {
+  color: var(--hr-primary);
+  font-weight: 600;
+}
+
+/* Same pill as .dh-tag-black */
+.theme-doc-version-badge {
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 24px;
+  background: #22262a;
+  color: #fff;
+  font-size: 12px;
+}
+
+.table-of-contents__link--active {
+  color: var(--hr-primary);
+  font-weight: 600;
+}
+.pagination-nav__link {
+  border-radius: 12px;
+}
+.pagination-nav__link:hover {
+  border-color: var(--hr-primary);
+}
+.theme-edit-this-page {
+  color: var(--hr-text-muted);
+}
+.theme-edit-this-page:hover {
+  color: var(--hr-primary);
+}
