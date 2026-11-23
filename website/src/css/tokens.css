@@ -29,5 +29,7 @@
 }
 
 @media (max-width: 996px) {
-  :root { --ifm-navbar-height: 100px; }
+  :root {
+    --ifm-navbar-height: 100px;
+  }
 }

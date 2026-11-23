@@ -17,7 +17,7 @@ const versionOptions: Record<string, VersionOptions> = Object.fromEntries(
       path: i === 0 ? "" : v, // newest stable owns /docs/, older ones /docs/2.0/
       banner: i === 0 ? "none" : "unmaintained",
     },
-  ])
+  ]),
 );
 
 // ---------------------------------------------------------------------------
@@ -101,41 +101,38 @@ const config: Config = {
       respectPrefersColorScheme: false,
     },
     navbar: {
-      title: "HarborRAG",
-      logo: { alt: "HarborRAG", src: "img/logo.svg" },
+      logo: { alt: "HarborRAG", src: "img/logo.svg", height: 60 },
       items: [
+        // TODO: switch to { to: "/#overview" } once the landing registers the anchor.
+        {
+          type: "doc",
+          docId: "project/overview",
+          label: "Overview",
+          position: "right",
+        },
         {
           type: "docSidebar",
           sidebarId: "docs",
-          label: "Docs",
-          position: "left",
-        },
-        // By doc id, not URL: the route depends on the version (/docs/next/... today,
-        // /docs/... once a stable snapshot exists). The pages come from the ingest.
-        {
-          type: "doc",
-          docId: "developers/architecture/README",
-          label: "Architecture",
-          position: "left",
-        },
-        {
-          type: "doc",
-          docId: "users/detailed-guides/mcp-server/README",
-          label: "MCP",
-          position: "left",
-        },
-        {
-          type: "doc",
-          docId: "project/changelog",
-          label: "Changelog",
-          position: "left",
+          label: "Documentation",
+          position: "right",
         },
         { type: "docsVersionDropdown", position: "right" },
-        { href: SOURCE_REPO, label: "GitHub", position: "right" },
         {
-          href: PYPI.harborrag,
+          href: SOURCE_REPO,
+          label: "GitHub",
+          position: "right",
+          className: "header-github-link",
+        },
+        {
+          type: "dropdown",
           label: "PyPI",
           position: "right",
+          className: "header-pypi-link",
+          items: [
+            { label: "HarborRAG", href: PYPI.harborrag },
+            { label: "MCP Server", href: PYPI.mcpServer },
+            { label: "Core Library", href: PYPI.core },
+          ],
         },
       ],
     },
