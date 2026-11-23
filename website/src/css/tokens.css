@@ -1,0 +1,33 @@
+:root {
+  --hr-primary: #ee4823;
+  --hr-text: #1c1c1c;
+  --hr-text-muted: #505050;
+  --hr-placeholder: #8d8d8d;
+  --hr-tertiary-bg: #fdeae3;
+  --hr-border: #e9ecef;
+  --hr-surface-muted: #f8f9fa;
+  --hr-font: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --hr-font-2: "Noto Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --hr-mono: "Source Code Pro", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --ifm-color-primary: #ee4823;
+  --ifm-color-primary-dark: #e43812;
+  --ifm-color-primary-darker: #d73511;
+  --ifm-color-primary-darkest: #b12c0e;
+  --ifm-color-primary-light: #f05d3c;
+  --ifm-color-primary-lighter: #f16849;
+  --ifm-color-primary-lightest: #f4876f;
+  --ifm-font-family-base: var(--hr-font);
+  --ifm-heading-font-family: var(--hr-font);
+  --ifm-font-family-monospace: var(--hr-mono);
+  --ifm-font-color-base: var(--hr-text);
+  --ifm-line-height-base: 1.6;
+  --ifm-code-background: #f1f3f4;
+  --ifm-code-font-size: 0.875em;
+  --ifm-navbar-height: 124px;
+  --doc-sidebar-width: 300px;
+}
+
+@media (max-width: 996px) {
+  :root { --ifm-navbar-height: 100px; }
+}
