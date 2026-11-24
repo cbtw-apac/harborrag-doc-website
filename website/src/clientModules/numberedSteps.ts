@@ -1,6 +1,6 @@
 // Number every ordered list in a doc, and let a list that follows a code block, table,
 // quote or another list continue the previous count instead of restarting.
-const CONTINUES_AFTER = "ol, ul, pre, blockquote, table, .theme-code-block";
+const CONTINUES_AFTER = "ol, ul, pre, blockquote, table, .table-scroll, .theme-code-block";
 
 function previousContentSibling(el: Element): Element | null {
   let node = el.previousElementSibling;
