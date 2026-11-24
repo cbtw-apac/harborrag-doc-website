@@ -55,6 +55,10 @@
   text-align: justify;
 }
 
+.theme-doc-markdown a:has(> img:only-child) + a:has(> img:only-child) {
+  margin-left: 6px;
+}
+
 .theme-doc-markdown :not(pre) > code {
   padding: 0.125rem 0.25rem;
   border: 0;
@@ -208,15 +212,11 @@
   color: var(--hr-primary);
   font-weight: 600;
 }
-.pagination-nav__link {
-  border-radius: 12px;
-}
-.pagination-nav__link:hover {
-  border-color: var(--hr-primary);
-}
+
 .theme-edit-this-page {
-  color: var(--hr-text-muted);
+  display: none;
 }
-.theme-edit-this-page:hover {
-  color: var(--hr-primary);
+
+.pagination-nav {
+  display: none;
 }

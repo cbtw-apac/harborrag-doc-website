@@ -7,7 +7,7 @@ import CpuIcon from "@site/src/assets/icons/cpu-icon.svg";
 import McpServerIcon from "@site/src/assets/icons/circuit-board-icon.svg";
 import HarborragIcon from "@site/src/assets/icons/arrow-reload-icon.svg";
 import HierarchyIcon from "@site/src/assets/icons/hierarchy-icon.svg";
-import FolderIcon from "@site/src/assets/icons/folder-2-icon.svg";
+import FolderIcon from "@site/src/assets/icons/folder-icon.svg";
 import MagicWandIcon from "@site/src/assets/icons/magic-wand-icon.svg";
 import FileIcon from "@site/src/assets/icons/file-icon.svg";
 import CliIcon from "@site/src/assets/icons/cli-icon.svg";
@@ -20,7 +20,7 @@ import GitHubIcon from "@site/src/assets/icons/github-icon.svg";
 import { PYPI, SOURCE_REPO } from "@site/src/lib/site";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
-export type TagTone = "blue" | "cyan" | "green" | "yellow" | "gray" | "black";
+export type TagTone = "blue" | "cyan" | "green" | "gray" | "black";
 
 export interface HubItem {
   label: string;

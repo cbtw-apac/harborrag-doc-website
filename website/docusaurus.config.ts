@@ -7,6 +7,7 @@ import { versions, syncState } from "./src/lib/syncState";
 import prismTheme from "./src/lib/prismTheme";
 import rehypeTableScroll from "./src/lib/rehypeTableScroll";
 
+const BASE_URL = "/harborrag-doc-website/"; // change once we map "harborrag.net"
 const latest = versions[0]; // string | undefined until the first stable sync
 
 // Explicit tuple return type: without it TS infers (string | {...})[] and Object.fromEntries rejects it.
@@ -48,7 +49,7 @@ const config: Config = {
   ],
 
   url: "https://cbtw-apac.github.io",
-  baseUrl: "/harborrag-doc-website/", // change once we map "harborrag.net"
+  baseUrl: BASE_URL,
   organizationName: "cbtw-apac",
   projectName: "harborrag-doc-website",
   trailingSlash: false,
@@ -72,9 +73,6 @@ const config: Config = {
           path: "docs",
           routeBasePath: "docs",
           sidebarPath: "./sidebars.ts",
-          // Edit links go to the source of truth (HarborRAG docs folder), never to this repo.
-          editUrl: ({ docPath }: { docPath: string }) =>
-            `${SOURCE_REPO}/edit/main/docs/${docPath}`,
           lastVersion: latest ?? "current",
           versions: {
             current: {
@@ -108,7 +106,13 @@ const config: Config = {
       logo: { alt: "HarborRAG", src: "img/logo.svg", height: 60 },
       items: [
         // The landing's card grid; GettingStarted registers the anchor for the link checker.
-        { to: "/#overview", label: "Overview", position: "right" },
+        {
+          to: "/#overview",
+          label: "Overview",
+          position: "right",
+          // "/" prefixes every path, so by default this link is active on all pages
+          activeBaseRegex: `^${BASE_URL}?$`,
+        },
         {
           to: "/documentation",
           label: "Documentation",
@@ -127,9 +131,21 @@ const config: Config = {
           position: "right",
           className: "header-pypi-link",
           items: [
-            { label: "HarborRAG", href: PYPI.harborrag },
-            { label: "MCP Server", href: PYPI.mcpServer },
-            { label: "Core Library", href: PYPI.core },
+            {
+              label: "HarborRAG",
+              href: PYPI.harborrag,
+              className: "pypi-item pypi-item--harborrag",
+            },
+            {
+              label: "MCP Server",
+              href: PYPI.mcpServer,
+              className: "pypi-item pypi-item--mcp",
+            },
+            {
+              label: "Core Library",
+              href: PYPI.core,
+              className: "pypi-item pypi-item--core",
+            },
           ],
         },
       ],

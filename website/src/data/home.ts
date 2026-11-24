@@ -4,11 +4,8 @@
 import type { ComponentType, SVGProps } from "react";
 
 import BugIcon from "@site/src/assets/icons/bug-orange-icon.svg";
-import CardExtendingIcon from "@site/src/assets/icons/file-conversion-icon.svg";
 import CircuitBoardIcon from "@site/src/assets/icons/circuit-board-orange-icon.svg";
 import DiscussionIcon from "@site/src/assets/icons/discussion-icon.svg";
-import ProviderAgnosticIcon from "@site/src/assets/icons/server-icon.svg";
-import SemanticSearchIcon from "@site/src/assets/icons/search-orange-icon.svg";
 import FileConversionIcon from "@site/src/assets/icons/file-conversion-icon.svg";
 import FilePdfIcon from "@site/src/assets/icons/file-pdf-icon.svg";
 import GitHubIcon from "@site/src/assets/icons/github-orange-icon.svg";
@@ -98,7 +95,7 @@ export const gettingStartedCards: readonly GettingStartedCard[] = [
     description:
       "Implement a real connector, parser, model, or repository using the base + mock pattern.",
     docId: "developers/extending/README",
-    Icon: CardExtendingIcon,
+    Icon: FileConversionIcon,
   },
   {
     title: "Quick Start",
@@ -134,7 +131,7 @@ export const keyFeatures: readonly KeyFeature[] = [
   {
     title: "Semantic Search",
     description: "AI-powered document retrieval",
-    Icon: SemanticSearchIcon,
+    Icon: SearchIcon,
   },
   {
     title: "MCP Integration",
@@ -144,7 +141,7 @@ export const keyFeatures: readonly KeyFeature[] = [
   {
     title: "Provider Agnostic",
     description: "Replaceable models, stores, parsers, and transports",
-    Icon: ProviderAgnosticIcon,
+    Icon: ServerIcon,
   },
 ];
 
