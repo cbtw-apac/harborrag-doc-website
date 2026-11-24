@@ -107,13 +107,8 @@ const config: Config = {
     navbar: {
       logo: { alt: "HarborRAG", src: "img/logo.svg", height: 60 },
       items: [
-        // TODO: switch to { to: "/#overview" } once the landing registers the anchor.
-        {
-          type: "doc",
-          docId: "project/overview",
-          label: "Overview",
-          position: "right",
-        },
+        // The landing's card grid; GettingStarted registers the anchor for the link checker.
+        { to: "/#overview", label: "Overview", position: "right" },
         {
           type: "docSidebar",
           sidebarId: "docs",

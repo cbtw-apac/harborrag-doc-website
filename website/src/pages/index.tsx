@@ -1,23 +1,23 @@
-import Link from "@docusaurus/Link";
-import { useLatestVersion } from "@docusaurus/plugin-content-docs/client";
-import useDocusaurusContext from "@docusaurus/useDocusaurusContext";
 import Layout from "@theme/Layout";
 import type { ReactNode } from "react";
 
+import Community from "@site/src/components/home/Community";
+import GettingStarted from "@site/src/components/home/GettingStarted";
+import Hero from "@site/src/components/home/Hero";
+import Install from "@site/src/components/home/Install";
+import KeyFeatures from "@site/src/components/home/KeyFeatures";
+import RunIt from "@site/src/components/home/RunIt";
+
 export default function Home(): ReactNode {
-  const { siteConfig } = useDocusaurusContext();
-  const docs = useLatestVersion(undefined); // pluginId is a required positional
-  // docs.path has no page of its own once the ingest owns website/docs/; link the
-  // version's main doc (first doc of the sidebar) instead.
-  const mainDoc = docs.docs.find((d) => d.id === docs.mainDocId)!;
   return (
-    <Layout title={siteConfig.title} description={siteConfig.tagline}>
-      <main style={{ padding: "6rem 1rem", textAlign: "center" }}>
-        <h1>{siteConfig.title}</h1>
-        <p>{siteConfig.tagline}</p>
-        <Link className="button button--primary button--lg" to={mainDoc.path}>
-          Read the docs
-        </Link>
+    <Layout description="A modular, provider-agnostic RAG framework for engineering knowledge">
+      <main>
+        <Hero />
+        <RunIt />
+        <GettingStarted />
+        <KeyFeatures />
+        <Install />
+        <Community />
       </main>
     </Layout>
   );

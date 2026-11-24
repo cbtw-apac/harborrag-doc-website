@@ -1,0 +1,259 @@
+/* Port of .hero-* from HarborRAG templates/index.html */
+.section {
+  position: relative;
+  overflow: hidden;
+  background: var(--hr-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 1170px;
+  margin: 0 auto;
+  padding: 136px 0;
+}
+
+.title {
+  margin: 0 0 24px;
+  font-family: var(--hr-font);
+  font-weight: 700;
+  font-size: 60px;
+  line-height: 120%;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.accent {
+  color: var(--hr-primary);
+}
+
+.description {
+  max-width: 44rem;
+  margin: 0 0 48px;
+  color: #fff;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.claim {
+  max-width: 44rem;
+  margin: 0 0 48px;
+  padding-left: 14px;
+  border-left: 2px solid var(--hr-primary);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 15px;
+  line-height: 24px;
+}
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 32px 120px;
+  max-width: 38rem;
+}
+
+.feature {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.featureIcon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  margin-top: 96px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  box-sizing: border-box;
+  border-radius: 32px;
+  font-weight: 400;
+  font-size: 16px;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    filter 150ms ease;
+}
+
+.button:hover {
+  text-decoration: none;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.1);
+}
+
+.button:active {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+}
+
+.button:focus-visible {
+  box-shadow: 0 0 0 4px rgba(238, 72, 35, 0.14);
+}
+
+.buttonIcon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.buttonLight {
+  background: #fff;
+  color: #1a1a1a;
+  padding: 16px 52px;
+}
+
+.buttonLight:hover {
+  filter: brightness(0.98) saturate(1.04);
+  background: linear-gradient(180deg, #fff 0%, #fff1ec 100%);
+  color: var(--hr-text);
+  box-shadow: 0 10px 24px rgba(40, 12, 6, 0.06);
+}
+
+.buttonOutline {
+  border: 1px solid var(--hr-primary);
+  background: var(--hr-primary);
+  color: #fff;
+  padding: 16px 38px;
+}
+
+.buttonOutline:hover {
+  filter: brightness(0.94) saturate(1.08);
+  background: linear-gradient(180deg, #f26a45 0%, #c93a18 100%);
+  color: #fff;
+  box-shadow: 0 12px 30px rgba(238, 72, 35, 0.12);
+  border-color: rgba(238, 72, 35, 0.9);
+}
+
+/* HarborRAG draws the GitHub mark dark on the orange button, not in the white label colour. */
+.buttonOutline .buttonIcon {
+  color: #343330;
+}
+
+@media (max-width: 1200px) {
+  .content {
+    padding: 80px 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .features {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .section {
+    align-items: start;
+    justify-content: start;
+    padding: 30px 0;
+  }
+
+  .content {
+    padding: 60px 20px;
+  }
+
+  .cta {
+    gap: 16px;
+    margin-top: 60px;
+  }
+
+  .button {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .content {
+    text-align: start;
+  }
+
+  .title {
+    font-size: clamp(2.25rem, 8vw, 3.5rem);
+    line-height: 1.05;
+  }
+
+  .description {
+    max-width: 100%;
+  }
+
+  .features {
+    margin: 1rem auto;
+    max-width: 100%;
+  }
+
+  .feature {
+    font-size: 0.98rem;
+    gap: 0.5rem;
+  }
+
+  .featureIcon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .cta {
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .button {
+    padding: 14px 18px;
+    font-size: 1rem;
+    border-radius: 28px;
+    max-width: 420px;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 420px) {
+  .section {
+    padding: 12px 0;
+  }
+
+  .title {
+    font-size: clamp(1.9rem, 9vw, 2.8rem);
+    letter-spacing: -0.01em;
+  }
+
+  .description,
+  .claim,
+  .feature {
+    font-size: 0.95rem;
+  }
+
+  .featureIcon {
+    width: 28px;
+    height: 28px;
+  }
+}
