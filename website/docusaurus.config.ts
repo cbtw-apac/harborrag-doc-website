@@ -134,10 +134,6 @@ const config: Config = {
         },
       ],
     },
-    footer: {
-      style: "dark",
-      copyright: `© ${new Date().getFullYear()} CBTW.`,
-    },
     prism: {
       theme: prismTheme,
       additionalLanguages: ["bash", "json", "toml", "yaml", "python"],
