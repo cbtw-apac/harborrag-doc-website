@@ -6,14 +6,11 @@ import BookIcon from "@site/src/assets/icons/book-open-icon.svg";
 import GitHubIcon from "@site/src/assets/icons/github-icon.svg";
 import background from "@site/src/assets/images/home-background.webp";
 import { heroFeatures } from "@site/src/data/home";
-import { useMainDocPath } from "@site/src/lib/docPath";
 import { SOURCE_REPO } from "@site/src/lib/site";
 
 import styles from "./styles.module.css";
 
 export default function Hero(): ReactNode {
-  // TODO: point at the /documentation hub once it exists.
-  const docsHome = useMainDocPath();
   return (
     <section className={styles.section}>
       <img className={styles.background} src={background} alt="" />
@@ -39,7 +36,7 @@ export default function Hero(): ReactNode {
         </div>
 
         <div className={styles.cta}>
-          <Link to={docsHome} className={clsx(styles.button, styles.buttonLight)}>
+          <Link to="/documentation" className={clsx(styles.button, styles.buttonLight)}>
             <BookIcon className={styles.buttonIcon} aria-hidden="true" />
             Get Started
           </Link>

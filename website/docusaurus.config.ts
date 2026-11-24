@@ -110,8 +110,7 @@ const config: Config = {
         // The landing's card grid; GettingStarted registers the anchor for the link checker.
         { to: "/#overview", label: "Overview", position: "right" },
         {
-          type: "docSidebar",
-          sidebarId: "docs",
+          to: "/documentation",
           label: "Documentation",
           position: "right",
         },

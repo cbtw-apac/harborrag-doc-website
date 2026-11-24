@@ -6,13 +6,10 @@ import ModuleIcon from "@site/src/assets/icons/module-icon.svg";
 import background from "@site/src/assets/images/install-background-HarborRAG.webp";
 import Terminal from "@site/src/components/Terminal";
 import { installCards } from "@site/src/data/home";
-import { useMainDocPath } from "@site/src/lib/docPath";
 
 import styles from "./styles.module.css";
 
 export default function Install(): ReactNode {
-  // TODO: point at the /documentation hub once it exists.
-  const docsHome = useMainDocPath();
   return (
     <section className={styles.section}>
       <img className={styles.background} src={background} alt="" />
@@ -46,7 +43,7 @@ export default function Install(): ReactNode {
           )}
         </div>
 
-        <Link to={docsHome} className={styles.cta}>
+        <Link to="/documentation" className={styles.cta}>
           <DocumentationIcon aria-hidden="true" />
           View Full Documentation
         </Link>

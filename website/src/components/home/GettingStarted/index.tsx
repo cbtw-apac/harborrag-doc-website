@@ -7,7 +7,6 @@ import NarrowIcon from "@site/src/assets/icons/narrow-white-icon.svg";
 import illustration from "@site/src/assets/images/R-HarborRAG.png";
 import DocLink from "@site/src/components/DocLink";
 import { gettingStartedCards } from "@site/src/data/home";
-import { useMainDocPath } from "@site/src/lib/docPath";
 
 import styles from "./styles.module.css";
 
@@ -15,8 +14,6 @@ export default function GettingStarted(): ReactNode {
   // The navbar links /#overview; the anchor checker only knows headings and
   // anchors registered like this one.
   useBrokenLinks().collectAnchor("overview");
-  // TODO: point at the /documentation hub once it exists.
-  const docsHome = useMainDocPath();
   return (
     <section className={styles.section}>
       <div className={styles.top}>
@@ -25,7 +22,7 @@ export default function GettingStarted(): ReactNode {
           <p className={styles.description}>
             Comprehensive documentation for HarborRAG <br /> and MCP Server.
           </p>
-          <Link to={docsHome} className={styles.cta}>
+          <Link to="/documentation" className={styles.cta}>
             Explore Now
             <NarrowIcon aria-hidden="true" />
           </Link>

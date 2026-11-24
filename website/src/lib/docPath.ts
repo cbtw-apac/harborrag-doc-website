@@ -26,8 +26,3 @@ export function useDocPath(docId: string): string | undefined {
   }
   return path;
 }
-
-export function useMainDocPath(): string {
-  const version = useReaderVersion();
-  return version.docs.find((doc) => doc.id === version.mainDocId)!.path;
-}

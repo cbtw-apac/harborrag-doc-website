@@ -5,7 +5,6 @@ import type { ComponentType, SVGProps } from "react";
 
 import BugIcon from "@site/src/assets/icons/bug-orange-icon.svg";
 import CardExtendingIcon from "@site/src/assets/icons/file-conversion-icon.svg";
-import CardMcpServerIcon from "@site/src/assets/icons/circuit-board-orange-icon.svg";
 import CircuitBoardIcon from "@site/src/assets/icons/circuit-board-orange-icon.svg";
 import DiscussionIcon from "@site/src/assets/icons/discussion-icon.svg";
 import ProviderAgnosticIcon from "@site/src/assets/icons/server-icon.svg";
@@ -85,7 +84,7 @@ export const gettingStartedCards: readonly GettingStartedCard[] = [
     description:
       "Model Context Protocol server providing RAG capabilities for Cursor IDE and other Al development tools.",
     docId: "packages/harborrag-mcp-server",
-    Icon: CardMcpServerIcon,
+    Icon: CircuitBoardIcon,
   },
   {
     title: "Multi-Project Support",
