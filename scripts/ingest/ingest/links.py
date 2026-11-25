@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import posixpath
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
+from ingest.anchors import page_anchors
 from ingest.frontmatter import FENCE_RE
 from ingest.models import Doc
 
@@ -27,10 +28,43 @@ EXTERNAL_RE = re.compile(r"^(?:[a-z][a-z0-9+.-]*:|//)", re.IGNORECASE)
 class BrokenLink:
     source_path: PurePosixPath
     link: str
+    #: 1-based line in the doc body (for bridged package READMEs the facts
+    #: table shifts it by a few lines). Not part of equality.
+    line: int | None = field(default=None, compare=False)
+    #: ``"broken link"`` (target missing) or ``"broken anchor"`` (target exists,
+    #: ``#anchor`` is not on it).
+    reason: str = field(default="broken link", compare=False)
 
     def __str__(self) -> str:
-        return f"{self.source_path}: {self.link}"
+        where = f"{self.source_path}:{self.line}" if self.line else f"{self.source_path}"
+        return f"{where}: {self.reason} {self.link}"
 
+#: ``{target path (docs-dir relative, POSIX): anchor ids}``, see ``build_anchor_index``.
+AnchorIndex = dict[str, set[str]]
+
+def build_anchor_index(docs: list[Doc]) -> AnchorIndex:
+    """Return the anchors of every page, keyed by ``Doc.target_path``.
+
+    Keyed by target (not source) path because that is what the link mapping
+    values are: ``docs/TOC.md`` maps to the first sidebar doc, bridged files to
+    ``project/*.md`` / ``packages/*.md``, so one lookup covers all of them.
+    Must run on the raw bodies, before ``rewrite_links`` / ``apply_frontmatter``.
+    """
+    return {d.target_path.as_posix(): page_anchors(d.body) for d in docs}
+
+
+def anchor_ok(anchor: str, *, target: str, anchors: AnchorIndex | None) -> bool:
+    """``True`` unless ``anchor`` (``"#x"``) is known to be missing from page ``target``.
+
+    No index, empty anchor (``x.md#``) or a target that is not an ingested page
+    (absolute ``/docs/...`` mapping values) -> nothing to check -> ``True``.
+    """
+    if anchors is None or anchor in ("", "#") or target not in anchors:
+        return True
+
+    fragment = anchor[1:]
+    page = anchors[target]
+    return fragment in page or unquote(fragment) in page
 
 class BrokenLinksError(Exception):
     """Raised once with every broken link, so a single run lists them all."""
@@ -125,6 +159,8 @@ def rewrite_link(
     mapping: dict[Path, str],
     source_root: Path,
     image: bool = False,
+    anchors: AnchorIndex | None = None,
+    on_broken_anchor=None,
 ) -> str | None:
     """Return the rewritten link, or ``None`` when it is broken.
 
@@ -142,6 +178,15 @@ def rewrite_link(
     6. anything else                               -> broken
        (missing file, or a docs/ page that is not published)
     """
+
+    if target.startswith("#"):
+        own = doc.target_path.as_posix()
+        if not anchor_ok(target, target=own, anchors=anchors):
+            if on_broken_anchor:
+                on_broken_anchor()
+            return None
+        return target
+
     if not is_rewritable(target):
         return target
 
@@ -155,6 +200,10 @@ def rewrite_link(
 
     value = mapping.get(Path(resolved.as_posix()))
     if value is not None:
+        if not anchor_ok(anchor, target=value, anchors=anchors):
+            if on_broken_anchor:
+                on_broken_anchor()
+            return None
         return site_link(value, from_target=PurePosixPath(doc.target_path.as_posix())) + anchor
 
     full = source_root / resolved
@@ -198,6 +247,7 @@ def rewrite_links(
     *,
     mapping: dict[Path, str],
     source_root: Path,
+    anchors: AnchorIndex | None = None,
 ) -> list[BrokenLink]:
     """Rewrite every link in ``doc.body`` in place; return the broken ones.
 
@@ -208,13 +258,25 @@ def rewrite_links(
     """
     broken: list[BrokenLink] = []
     source_path = PurePosixPath(doc.source_path.as_posix())
-
+    line_no = 0
+    
     def _rewrite(target: str, *, image: bool) -> str | None:
+        reason = ["broken link"]
+
+        def _anchor():
+            reason[0] = "broken anchor"
+
         new_link = rewrite_link(
-            target, doc=doc, mapping=mapping, source_root=source_root, image=image
+            target,
+            doc=doc,
+            mapping=mapping,
+            source_root=source_root,
+            image=image,
+            anchors=anchors,
+            on_broken_anchor=_anchor,
         )
         if new_link is None:
-            broken.append(BrokenLink(source_path, target))
+            broken.append(BrokenLink(source_path, target, line=line_no, reason=reason[0]))
         return new_link
 
     def _sub(match):
@@ -237,7 +299,7 @@ def rewrite_links(
     doc_lines = doc.body.splitlines(keepends=True)
     new_lines = []
     in_fence = False
-    for line in doc_lines:
+    for line_no, line in enumerate(doc_lines, start=1):
         if FENCE_RE.match(line):
             in_fence = not in_fence
 
@@ -258,8 +320,9 @@ def apply_links(docs: list[Doc], *, mapping: dict[Path, str], source_root: Path)
     All docs are processed before raising, so one run shows every problem.
     """
     broken = []
+    anchors = build_anchor_index(docs)
     for doc in docs:
-        bk = rewrite_links(doc, mapping=mapping, source_root=source_root)
+        bk = rewrite_links(doc, mapping=mapping, source_root=source_root, anchors=anchors)
         broken.extend(bk)
 
     if broken:

@@ -126,6 +126,11 @@ def parse_toc(
             target, an item before any ``##`` heading, an indented item with no
             parent, or indentation that is not a multiple of ``INDENT`` / too deep.
     """
+
+    if pages is not None:
+    # collect() returns native paths (WindowsPath on Windows); compare as POSIX.
+        pages = {PurePosixPath(Path(p).as_posix()) for p in pages}
+
     categories: list[Category] = []
 
     # collect() returns WindowsPath on Windows, which never equals a PurePosixPath
