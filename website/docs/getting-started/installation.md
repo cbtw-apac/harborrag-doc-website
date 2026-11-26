@@ -1,11 +1,13 @@
 ---
 title: Installation
-description: Choose how to install HarborRAG's Python packages, which extras to add,
-  and which parser backends to install. To get started, clone the repository and follow…
+description: -- Update test Manual sync document website -- Choose how to install
+  HarborRAG's Python packages, which extras to add, and which parser backends to install.
+  To…
 custom_edit_url: https://github.com/cbtw-apac/HarborRAG/edit/main/docs/getting-started/installation.md
 source_path: docs/getting-started/installation.md
 ---
 
+-- Update test Manual sync document website --
 Choose how to install HarborRAG's Python packages, which extras to add, and which parser
 backends to install. To get started, clone the repository and follow the
 [Quick Start](quick-start.md): that is the path these docs describe. This page is the

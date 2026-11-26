@@ -1,12 +1,13 @@
 ---
 title: Quick Start
-description: In this tutorial you clone HarborRAG, start its local stack, ingest the
-  repository's own docs/ folder, and ask a question about it. It takes about half
-  an…
+description: -- Update test Manual sync document website -- In this tutorial you clone
+  HarborRAG, start its local stack, ingest the repository's own docs/ folder, and
+  ask a…
 custom_edit_url: https://github.com/cbtw-apac/HarborRAG/edit/main/docs/getting-started/quick-start.md
 source_path: docs/getting-started/quick-start.md
 ---
 
+-- Update test Manual sync document website --
 In this tutorial you clone HarborRAG, start its local stack, ingest the repository's own
 `docs/` folder, and ask a question about it. It takes about half an hour, most of it spent
 waiting for the first container build.

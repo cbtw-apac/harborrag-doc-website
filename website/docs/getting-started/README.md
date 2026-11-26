@@ -1,11 +1,12 @@
 ---
 title: Getting Started
-description: 'This section is for anyone new to HarborRAG. Start with the Quick Start:
-  one tutorial that takes you from a clone of the repository to a first answer about…'
+description: '-- Update test Manual sync document website -- This section is for anyone
+  new to HarborRAG. Start with the Quick Start: one tutorial that takes you from a…'
 custom_edit_url: https://github.com/cbtw-apac/HarborRAG/edit/main/docs/getting-started/README.md
 source_path: docs/getting-started/README.md
 ---
 
+-- Update test Manual sync document website --
 This section is for anyone new to HarborRAG. Start with the [Quick Start](quick-start.md): one
 tutorial that takes you from a clone of the repository to a first answer about your
 documents.
