@@ -2,9 +2,9 @@
   "current": {
     "label": "Next",
     "channel": "main",
-    "source_ref": "local",
-    "source_sha": "3d8be1c01b030ca6c6254eeb85031fad290aa9a1",
-    "synced_at": "2026-11-11T07:40:05Z"
+    "source_ref": "dev/v2.0.0",
+    "source_sha": "49e0b985afb4d3efa633383ee7f3142232bee0f1",
+    "synced_at": "2026-11-26T06:46:33Z"
   },
   "versions": {}
 }
