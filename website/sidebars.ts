@@ -84,9 +84,19 @@ export default {
           "label": "Python SDK"
         },
         {
-          "type": "doc",
-          "id": "users/cli-reference/README",
-          "label": "CLI Reference"
+          "type": "category",
+          "label": "CLI Reference",
+          "link": {
+            "type": "doc",
+            "id": "users/cli-reference/README"
+          },
+          "items": [
+            {
+              "type": "doc",
+              "id": "users/cli-reference/commands",
+              "label": "CLI Command Reference"
+            }
+          ]
         },
         {
           "type": "category",
