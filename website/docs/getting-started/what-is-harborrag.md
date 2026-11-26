@@ -1,12 +1,13 @@
 ---
 title: What is HarborRAG?
-description: '-- Update test Manual sync document website -- HarborRAG is a provider-agnostic
-  Retrieval-Augmented Generation (RAG) framework for engineering knowledge: it…'
+description: '-- Update test Manual sync document website 1-- Broken link: https://githubcom/cbtw-apac/HarborRAG
+  https://github.com/cbtw-apac/HarborRAGnotfound HarborRAG is…'
 custom_edit_url: https://github.com/cbtw-apac/HarborRAG/edit/main/docs/getting-started/what-is-harborrag.md
 source_path: docs/getting-started/what-is-harborrag.md
 ---
 
--- Update test Manual sync document website --
+-- Update test Manual sync document website 1-- Broken link: https://githubcom/cbtw-apac/HarborRAG
+https://github.com/cbtw-apac/HarborRAGnotfound
 HarborRAG is a provider-agnostic Retrieval-Augmented Generation (RAG) framework for
 engineering knowledge: it ingests documents from your sources, indexes them as vectors and as
 a knowledge graph, and lets you search and chat over them through a CLI, an HTTP API and MCP

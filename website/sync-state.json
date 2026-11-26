@@ -3,8 +3,8 @@
     "label": "Next",
     "channel": "main",
     "source_ref": "test/manual-sync-document-website",
-    "source_sha": "2c6913ec137f6b081b27165f1ce6293a4b81941a",
-    "synced_at": "2026-11-26T07:44:04Z"
+    "source_sha": "63c502be161e0393223bb1de60533f479a256b21",
+    "synced_at": "2026-11-26T08:15:18Z"
   },
   "versions": {}
 }
