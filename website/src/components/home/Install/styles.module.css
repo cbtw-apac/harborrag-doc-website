@@ -1,0 +1,206 @@
+/* Port of .section-install / .install-* from HarborRAG templates/index.html */
+.section {
+  position: relative;
+  overflow: hidden;
+  min-height: 36.4rem;
+  display: flex;
+  align-items: center;
+}
+
+.background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(253, 234, 227, 0.14);
+  z-index: 1;
+}
+
+.container {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 1170px;
+  margin: 0 auto;
+  padding: 96px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 56px;
+  text-align: center;
+}
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--hr-font);
+  font-weight: 700;
+  font-size: 48px;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  color: var(--hr-text);
+}
+
+.lead {
+  margin: 0;
+  font-family: var(--hr-font-2);
+  font-size: 16px;
+  line-height: 156%;
+  color: var(--hr-text);
+  opacity: 0.7;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 80px;
+}
+
+.card {
+  min-width: 0;
+  padding: 2.5rem 2.5rem 5rem;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 1.2rem;
+  background: rgba(253, 237, 231, 0.92);
+  box-shadow: 0 10px 24px rgba(60, 20, 10, 0.09);
+  backdrop-filter: blur(2px);
+  font-family: var(--hr-font-2);
+  font-size: 14px;
+}
+
+.cardIcon {
+  display: block;
+  width: 2.6rem;
+  height: 2.6rem;
+  margin: 0 auto 10px;
+  opacity: 0.95;
+  color: var(--hr-text);
+}
+
+.cardTitle {
+  margin: 0 0 10px;
+  font-weight: 700;
+  font-size: 30px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--hr-text);
+}
+
+.cardText {
+  margin: 0 0 40px;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--hr-text);
+}
+
+.terminal {
+  width: 100%;
+  margin: 0;
+}
+
+/* Terminal passes `className` to its root only; reach its body from here. */
+.terminal pre {
+  font-size: 15px;
+  padding: 0.95rem 1.15rem;
+}
+
+.pypiButton,
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: #191919;
+  color: #f8f8f8;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 500;
+  text-decoration: none;
+  transition: transform 0.2s ease;
+}
+
+.pypiButton:hover,
+.cta:hover {
+  color: #f8f8f8;
+  text-decoration: none;
+  transform: translateY(-3px);
+}
+
+.pypiButton {
+  margin-top: 40px;
+  padding: 13px 32px;
+  font-family: var(--hr-font-2);
+}
+
+.cta {
+  align-self: center;
+  padding: 16px 32px;
+  font-family: var(--hr-font);
+}
+
+.pypiButton svg,
+.cta svg {
+  flex: 0 0 auto;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #fff;
+  /* documentation-icon.svg carries a root stroke the template's inline copy did not have. */
+  stroke: none;
+}
+
+@media (max-width: 900px) {
+  .title {
+    font-size: 2.35rem;
+  }
+
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.2rem;
+  }
+
+  .cardTitle {
+    font-size: 1.95rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .section {
+    min-height: 0;
+    padding: 4.4rem 1rem 3.4rem;
+  }
+
+  /* HarborRAG sets the title (2.05rem) and card title (1.7rem) here too, but its
+     later 900px block wins at every width below 640px. */
+  .card {
+    padding: 1.45rem 1rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .card {
+    border-radius: 1rem;
+  }
+
+  .cardTitle {
+    line-height: 122%;
+    letter-spacing: -0.04em;
+  }
+}

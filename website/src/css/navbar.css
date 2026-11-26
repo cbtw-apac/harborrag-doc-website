@@ -1,0 +1,121 @@
+.navbar {
+  padding: 32px 40px;
+  background: #fff;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+.navbar__logo {
+  height: 60px;
+}
+.navbar__items--right {
+  gap: 24px;
+}
+
+.navbar__link {
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--hr-text);
+  transition: color 0.2s;
+}
+.navbar__link:hover,
+.navbar__link--active {
+  color: var(--hr-primary);
+}
+
+/* Mobile drawer: navbar items render as .menu__link there, not .navbar__link */
+.navbar-sidebar .menu__link {
+  font-weight: 600;
+  color: var(--hr-text);
+  background: none;
+}
+.navbar-sidebar .menu__link:hover,
+.navbar-sidebar .menu__link--active {
+  color: var(--hr-primary);
+  background: none;
+}
+
+.header-github-link,
+.header-pypi-link {
+  align-items: center;
+  gap: 4px;
+}
+@media (min-width: 997px) {
+  .header-github-link,
+  .header-pypi-link {
+    display: inline-flex;
+  }
+}
+.header-github-link::before,
+.header-pypi-link::before {
+  content: "";
+  width: 24px;
+  height: 24px;
+  background: currentColor;
+  mask: var(--icon) center / contain no-repeat;
+}
+.header-github-link {
+  --icon: url("../assets/icons/github-icon.svg");
+}
+.header-pypi-link {
+  --icon: url("../assets/icons/bag-pypi.svg");
+}
+
+.pypi-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pypi-item::before {
+  content: "";
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  background: currentColor;
+  mask: var(--icon) center / contain no-repeat;
+}
+.pypi-item--harborrag {
+  --icon: url("../assets/icons/arrow-reload-icon.svg");
+}
+.pypi-item--mcp {
+  --icon: url("../assets/icons/plug-icon.svg");
+}
+.pypi-item--core {
+  --icon: url("../assets/icons/cpu-icon.svg");
+}
+
+/* HarborRAG shows no external-link arrow: hide the theme's on GitHub and the PyPI menu links. */
+.header-github-link svg,
+.header-pypi-link + .dropdown__menu .dropdown__link svg,
+.menu__list svg {
+  display: none;
+}
+
+/* Shared by the PyPI menu and the version selector */
+.dropdown__menu {
+  padding: 8px;
+  border: 1px solid var(--hr-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+.dropdown__link {
+  border-radius: 8px;
+  font-family: var(--hr-font-2);
+  font-size: 14px;
+}
+
+.dropdown__link:hover {
+  background: var(--hr-tertiary-bg);
+  color: var(--hr-text);
+  font-weight: 600;
+}
+
+.dropdown__link--active {
+  background: var(--hr-tertiary-bg);
+  color: var(--hr-primary);
+  font-weight: 600;
+}
+
+@media (max-width: 996px) {
+  .navbar {
+    padding: 20px;
+  }
+}

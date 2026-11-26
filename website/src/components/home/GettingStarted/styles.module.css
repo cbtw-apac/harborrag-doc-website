@@ -1,0 +1,227 @@
+/* Port of .section-getting-started / .getting-started-* / .tool-cta from
+   HarborRAG templates/index.html, with its Bootstrap utilities written out. */
+.section {
+  width: 100%;
+  max-width: 1170px;
+  margin: 0 auto;
+  padding: 96px 0;
+}
+
+/* d-flex justify-content-between gap-4 flex-column flex-md-row */
+.top {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+/* d-flex flex-column gap-3 align-items-start */
+.intro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 24px;
+}
+
+.title {
+  margin: 0 0 0.5rem;
+  font-family: var(--hr-font);
+  font-weight: 700;
+  font-size: 48px;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  color: var(--hr-text);
+}
+
+.description {
+  margin: 0 0 1rem;
+  font-family: var(--hr-font);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 150%;
+  color: var(--hr-text);
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.75rem 2rem;
+  border-radius: 999px;
+  background: #1f1f1f;
+  color: #fff;
+  font-family: var(--hr-font-2);
+  font-size: 14px;
+  font-weight: 400;
+  text-decoration: none;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    filter 150ms ease;
+}
+
+.cta:hover {
+  opacity: 0.85;
+  color: #fff;
+  text-decoration: none;
+  transform: translateY(-3px);
+}
+
+.cta svg {
+  width: 20px;
+  height: 20px;
+}
+
+.illustration {
+  display: block;
+  width: 370px;
+  height: 280px;
+  max-width: none;
+  object-fit: contain;
+}
+
+/* row g-4 g-md-5 with col-12 col-md-6 col-xl-4 */
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+  margin-top: 80px;
+  scroll-margin-top: calc(var(--ifm-navbar-height) + 0.5rem);
+}
+
+/* d-flex gap-3 p-3 rounded-3 text-decoration-none text-dark */
+.card {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--hr-text);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  border-color: var(--hr-primary);
+  background: rgba(238, 72, 35, 0.04);
+  box-shadow: 0 4px 20px rgba(238, 72, 35, 0.12);
+  color: var(--hr-text);
+  text-decoration: none;
+}
+
+.cardIcon {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.cardTitle {
+  margin: 0 0 0.25rem;
+  font-family: var(--hr-font);
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 150%;
+  color: var(--hr-text);
+}
+
+/* Bootstrap's text-muted */
+.cardDescription {
+  margin: 0 0 0.5rem;
+  font-family: var(--hr-font);
+  font-size: 16px;
+  line-height: 150%;
+  color: rgba(33, 37, 41, 0.75);
+}
+
+/* .view-doc-link from base.html */
+.viewDocs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 1.5rem 0 0;
+  font-family: var(--hr-font-2);
+  font-size: 1rem;
+  line-height: 150%;
+  color: var(--hr-text);
+  transition: all 0.3s ease;
+}
+
+.viewDocs:hover {
+  color: var(--hr-primary);
+  transform: translateX(4px);
+}
+
+.viewDocs svg {
+  width: 24px;
+  height: 24px;
+}
+
+@media (min-width: 768px) {
+  .top {
+    flex-direction: row;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 3rem;
+  }
+}
+
+@media (min-width: 1200px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1200px) {
+  .section {
+    padding: 120px 40px;
+  }
+}
+
+@media (max-width: 900px) {
+  .section {
+    padding: 60px 2rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .section {
+    padding: 60px 20px;
+  }
+
+  .title {
+    font-size: 1.75rem;
+  }
+
+  .description {
+    max-width: 100%;
+  }
+
+  .cta {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .illustration {
+    width: min(100%, 450px);
+    height: auto;
+    margin: 0 auto;
+  }
+}
+
+/* HarborRAG's 420px block also sets padding, title size and image width, but its
+   later 560px block overrides them; only these two survive. */
+@media (max-width: 420px) {
+  .description {
+    font-size: 0.95rem;
+  }
+
+  .illustration {
+    max-width: 420px;
+  }
+}

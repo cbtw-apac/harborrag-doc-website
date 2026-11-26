@@ -1,9 +1,12 @@
 {
   "extends": "@docusaurus/tsconfig",
   "compilerOptions": {
+    // The preset's baseUrl resolves against its own folder in node_modules, so
+    // `@site/*` would point there; re-anchor it on the site root.
+    "baseUrl": ".",
     "strict": true,
     "noUncheckedIndexedAccess": true,
-    "ignoreDeprecations": "6.0"
+    "ignoreDeprecations": "6.0",
   },
   "exclude": [".docusaurus", "build"]
 }

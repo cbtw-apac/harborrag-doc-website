@@ -1,86 +1,13 @@
 import type { VersionOptions } from "@docusaurus/plugin-content-docs";
 import type * as Preset from "@docusaurus/preset-classic";
 import type { Config } from "@docusaurus/types";
-import { themes as prismThemes } from "prism-react-renderer";
 
-import syncStateJson from "./sync-state.json";
-import versionsJson from "./versions.json";
+import { PYPI, SOURCE_REPO } from "./src/lib/site";
+import { versions, syncState } from "./src/lib/syncState";
+import prismTheme from "./src/lib/prismTheme";
+import rehypeTableScroll from "./src/lib/rehypeTableScroll";
 
-// ---------------------------------------------------------------------------
-// Sync state — written by scripts/ingest, read here.
-// Both JSON files are parsed once at this boundary; nothing below touches the
-// raw imports.
-// ---------------------------------------------------------------------------
-
-type Channel = "main" | "prerelease" | "stable";
-
-interface SyncEntry {
-  label: string;
-  channel: Channel;
-  source_ref: string | null;
-  source_sha: string | null;
-  synced_at: string | null;
-}
-
-interface SyncState {
-  current: SyncEntry; // Docusaurus "current" = HarborRAG main / latest pre-release
-  versions: Record<string, SyncEntry>; // keyed exactly like versions.json ("2.0.0", "2.0.1", …)
-}
-
-const CHANNELS: readonly Channel[] = ["main", "prerelease", "stable"];
-
-const isRecord = (x: unknown): x is Record<string, unknown> =>
-  typeof x === "object" && x !== null && !Array.isArray(x);
-const isNullableString = (x: unknown): x is string | null =>
-  x === null || typeof x === "string";
-const isChannel = (x: unknown): x is Channel =>
-  typeof x === "string" && (CHANNELS as readonly string[]).includes(x);
-const isSyncEntry = (x: unknown): x is SyncEntry =>
-  isRecord(x) &&
-  typeof x.label === "string" &&
-  isChannel(x.channel) &&
-  isNullableString(x.source_ref) &&
-  isNullableString(x.source_sha) &&
-  isNullableString(x.synced_at);
-
-function parseSyncState(x: unknown): SyncState {
-  if (!isRecord(x)) {
-    throw new Error("website/sync-state.json must be an object");
-  }
-  const { current, versions } = x;
-  if (!isSyncEntry(current)) {
-    throw new Error(
-      'website/sync-state.json: "current" is not a valid sync entry'
-    );
-  }
-  if (!isRecord(versions)) {
-    throw new Error(
-      'website/sync-state.json: "versions" must be an object keyed by "X.Y"'
-    );
-  }
-  const parsed: Record<string, SyncEntry> = {};
-  for (const [key, entry] of Object.entries(versions)) {
-    if (!isSyncEntry(entry)) {
-      throw new Error(
-        `website/sync-state.json: versions["${key}"] is not a valid sync entry`
-      );
-    }
-    parsed[key] = entry;
-  }
-  return { current, versions: parsed };
-}
-
-function parseVersions(x: unknown): string[] {
-  const isMinorLine = (v: unknown): v is string =>
-    typeof v === "string" && /^\d+\.\d+$/.test(v);
-  if (!Array.isArray(x) || !x.every(isMinorLine)) {
-    throw new Error('website/versions.json must be ["X.Y", ...] newest-first');
-  }
-  return x;
-}
-
-const versions = parseVersions(versionsJson);
-const syncState = parseSyncState(syncStateJson);
+const BASE_URL = "/harborrag-doc-website/"; // change once we map "harborrag.net"
 const latest = versions[0]; // string | undefined until the first stable sync
 
 // Explicit tuple return type: without it TS infers (string | {...})[] and Object.fromEntries rejects it.
@@ -92,14 +19,12 @@ const versionOptions: Record<string, VersionOptions> = Object.fromEntries(
       path: i === 0 ? "" : v, // newest stable owns /docs/, older ones /docs/2.0/
       banner: i === 0 ? "none" : "unmaintained",
     },
-  ])
+  ]),
 );
 
 // ---------------------------------------------------------------------------
 // Site config
 // ---------------------------------------------------------------------------
-
-const SOURCE_REPO = "https://github.com/cbtw-apac/HarborRAG";
 
 const config: Config = {
   title: "HarborRAG",
@@ -107,7 +32,7 @@ const config: Config = {
   favicon: "img/favicon.ico",
 
   url: "https://cbtw-apac.github.io",
-  baseUrl: "/harborrag-doc-website/", // change once we map "harborrag.net"
+  baseUrl: BASE_URL,
   organizationName: "cbtw-apac",
   projectName: "harborrag-doc-website",
   trailingSlash: false,
@@ -131,9 +56,6 @@ const config: Config = {
           path: "docs",
           routeBasePath: "docs",
           sidebarPath: "./sidebars.ts",
-          // Edit links go to the source of truth (HarborRAG docs folder), never to this repo.
-          editUrl: ({ docPath }: { docPath: string }) =>
-            `${SOURCE_REPO}/edit/main/docs/${docPath}`,
           lastVersion: latest ?? "current",
           versions: {
             current: {
@@ -146,6 +68,9 @@ const config: Config = {
             },
             ...versionOptions,
           },
+          sidebarCollapsible: false, // HarborRAG's rail is a flat, always-open list
+          breadcrumbs: false, // HarborRAG doc pages have none
+          rehypePlugins: [rehypeTableScroll],
         },
         blog: false,
         theme: { customCss: "./src/css/custom.css" },
@@ -154,57 +79,66 @@ const config: Config = {
   ],
 
   themeConfig: {
-    image: "img/logo.svg",
-    colorMode: { defaultMode: "dark", respectPrefersColorScheme: true },
+    image: "img/social-card.png",
+    colorMode: {
+      defaultMode: "light",
+      disableSwitch: true,
+      respectPrefersColorScheme: false,
+    },
     navbar: {
-      title: "HarborRAG",
-      logo: { alt: "HarborRAG", src: "img/logo.svg" },
+      logo: { alt: "HarborRAG", src: "img/logo.svg", height: 60 },
       items: [
+        // The landing's card grid; GettingStarted registers the anchor for the link checker.
         {
-          type: "docSidebar",
-          sidebarId: "docs",
-          label: "Docs",
-          position: "left",
-        },
-        // By doc id, not URL: the route depends on the version (/docs/next/... today,
-        // /docs/... once a stable snapshot exists). The pages come from the ingest.
-        {
-          type: "doc",
-          docId: "developers/architecture/README",
-          label: "Architecture",
-          position: "left",
+          to: "/#overview",
+          label: "Overview",
+          position: "right",
+          // "/" prefixes every path, so by default this link is active on all pages
+          activeBaseRegex: `^${BASE_URL}?$`,
         },
         {
-          type: "doc",
-          docId: "users/detailed-guides/mcp-server/README",
-          label: "MCP",
-          position: "left",
-        },
-        {
-          type: "doc",
-          docId: "project/changelog",
-          label: "Changelog",
-          position: "left",
+          to: "/documentation",
+          label: "Documentation",
+          position: "right",
         },
         { type: "docsVersionDropdown", position: "right" },
-        { href: SOURCE_REPO, label: "GitHub", position: "right" },
         {
-          href: "https://pypi.org/p/harborrag",
+          href: SOURCE_REPO,
+          label: "GitHub",
+          position: "right",
+          className: "header-github-link",
+        },
+        {
+          type: "dropdown",
           label: "PyPI",
           position: "right",
+          className: "header-pypi-link",
+          items: [
+            {
+              label: "HarborRAG",
+              href: PYPI.harborrag,
+              className: "pypi-item pypi-item--harborrag",
+            },
+            {
+              label: "MCP Server",
+              href: PYPI.mcpServer,
+              className: "pypi-item pypi-item--mcp",
+            },
+            {
+              label: "Core Library",
+              href: PYPI.core,
+              className: "pypi-item pypi-item--core",
+            },
+          ],
         },
       ],
     },
-    footer: {
-      style: "dark",
-      copyright: `© ${new Date().getFullYear()} CBTW.`,
-    },
     prism: {
-      theme: prismThemes.github,
-      darkTheme: prismThemes.dracula,
+      theme: prismTheme,
       additionalLanguages: ["bash", "json", "toml", "yaml", "python"],
     },
   } satisfies Preset.ThemeConfig,
+  clientModules: ["./src/clientModules/numberedSteps.ts"],
 };
 
 export default config;
