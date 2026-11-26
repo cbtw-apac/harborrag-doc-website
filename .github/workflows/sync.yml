@@ -10,7 +10,7 @@ on:
       channel: { type: choice, options: [main, prerelease, stable], default: main }
       force:   { type: boolean, default: false }
 concurrency:
-  group: sync-${{ github.event.client_payload.channel || inputs.channel || 'cron' }}-${{ github.event.client_payload.product_version || inputs.ref || 'all' }}
+  group: sync
   cancel-in-progress: false
 permissions:
   contents: write
