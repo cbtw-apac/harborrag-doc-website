@@ -30,23 +30,6 @@ const config: Config = {
   title: "HarborRAG",
   tagline: "Open-source RAG framework",
   favicon: "img/favicon.ico",
-  headTags: [
-    {
-      tagName: "link",
-      attributes: { rel: "preconnect", href: "https://fonts.googleapis.com" },
-    },
-    {
-      tagName: "link",
-      attributes: {
-        rel: "preconnect",
-        href: "https://fonts.gstatic.com",
-        crossorigin: "anonymous",
-      },
-    },
-  ],
-  stylesheets: [
-    "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Noto+Sans:wght@400;600;700&family=Source+Code+Pro&display=swap",
-  ],
 
   url: "https://cbtw-apac.github.io",
   baseUrl: BASE_URL,

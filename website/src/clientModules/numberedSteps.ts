@@ -1,6 +1,7 @@
 // Number every ordered list in a doc, and let a list that follows a code block, table,
 // quote or another list continue the previous count instead of restarting.
-const CONTINUES_AFTER = "ol, ul, pre, blockquote, table, .table-scroll, .theme-code-block";
+const CONTINUES_AFTER =
+  "ol, ul, pre, blockquote, table, .table-scroll, .theme-code-block";
 
 function previousContentSibling(el: Element): Element | null {
   let node = el.previousElementSibling;
@@ -13,12 +14,23 @@ function previousContentSibling(el: Element): Element | null {
 function numberSteps(): void {
   let lastStep = 0;
   document
-    .querySelectorAll<HTMLOListElement>(".theme-doc-markdown ol")
+    .querySelectorAll<HTMLElement>(
+      ".theme-doc-markdown :is(h1, h2, h3, h4, h5, h6, ol)",
+    )
     .forEach((list) => {
+      if (!(list instanceof HTMLOListElement)) {
+        lastStep = 0;
+        return;
+      }
+
+      if (list.closest("li")) {
+        return;
+      }
       const items = list.querySelectorAll<HTMLLIElement>(":scope > li");
       if (items.length === 0) {
         return;
       }
+
       let first = 1;
       if (list.hasAttribute("start") && list.start > 0) {
         first = list.start;
