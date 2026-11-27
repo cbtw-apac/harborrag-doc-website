@@ -11,8 +11,8 @@ source_path: docs/users/configuration/connector-config.md
 starts for the first time: a folder of local files, a GitHub repository, a Confluence
 space, Jira projects or a SharePoint site. This page describes the file's format and
 the options of each provider, the kind of system a connector reads. After the first
-start, you change the same sources as connections through the API or
-`harborrag source`; see [Connections](../connections.md).
+start, you change the same sources as connections through the API or the
+`harborrag connections` commands; see [Connections](../connections.md).
 
 The repository ships two versions of the file in `config/sources/`:
 
@@ -30,20 +30,22 @@ A connection is one configured data source, stored in the control database, the
 database where HarborRAG keeps its own state such as connections, runs and settings.
 HarborRAG turns this file into connections once:
 
-- The API imports it at its first start, and the CLI before its first ingestion. The
-  import runs only while the install holds no project and no connection in any tenant.
-  A failed import is recorded and never retried.
+- The API imports it at its first start. The import runs only while the install holds
+  no project and no connection in any tenant. A failed import is recorded and never
+  retried.
 - Each entry becomes a connection in project `default` of the tenant
-  `HARBORRAG_INGESTION_TENANT_ID` names (`DEFAULT` unless set). The entry's key becomes
-  the connection's `source_key`, the name you pass to `harborrag ingest run`. It is also
-  the `connection_id` when it is a valid id; otherwise the id is a slug of the key.
+  `HARBORRAG_TENANT_ID` names (`DEFAULT` unless set). The entry's key becomes the
+  connection's `source_key`. It is also the `connection_id` when it is a valid id;
+  otherwise the id is a slug of the key. So the entry `jira-main` becomes the connection
+  `default/jira-main`, the ref that `harborrag ingestions start` takes.
 - Entries with `enabled: false` are skipped.
 - Values named under `environment:` are read once, at the import, and stored with the
   connection. Tokens and passwords named under `secrets:` are stored as references to
   their variable, which the process running the ingestion reads at the start of every
   run, so a new token takes effect without another import.
 - An entry whose variable is unset is still imported, with status `error`. Fix it with
-  `harborrag source update` or the API; see [Connection status](../connections.md#connection-status).
+  `harborrag connections update` or the API; see
+  [Connection status](../connections.md#connection-status).
 
 After the import, the service ignores edits to this file. `harborrag doctor` and the
 Python loader below still read it.
@@ -129,6 +131,33 @@ connectors:
 document that is already published leaves through the normal source reconciliation
 and cleanup.
 
+Files that the extension filters, `max_file_size_bytes` or `process_file_callback`
+leave out count as skipped in the run's status, as do paths that cannot be read or
+that resolve outside `source_path`. Path and glob filters, hidden files and
+`excluded_dir_names` drop files without counting them. Each skipped file is logged
+once as a `local.file_skipped` warning with its reason, the run ID and a
+`path_digest` instead of its name, because a file name can name a person. The digest
+is the first 12 characters of the SHA-256 of the file's absolute path, so you can
+check whether a warning is about a file you suspect:
+
+```bash
+printf '%s' "/data/docs/report.pdf" | sha256sum | cut -c1-12
+```
+
+Discovery skips a directory it is not allowed to list, with reason `unreadable`, and
+one removed between being found and being listed, with reason `deleted`. Any other
+error while listing a directory fails discovery instead, so a scan that missed part of
+the tree is never taken as complete and the files below are not retired; Temporal
+retries discovery from its last checkpoint. A file that a FIFO, a socket or a device
+replaces after discovery fails as `document_unsupported` when it is read, and no retry
+is offered.
+
+`checksum_mode` decides how a changed file is detected: `stat`, the default, compares
+the file's size and modification time, and `sha256` its content. In `stat` mode a file
+whose modification time changes gets a new document version even when its bytes are the
+same. That version reuses the stored vectors, and `updated_at` filters see the new
+time.
+
 A relative `source_path` written in the YAML resolves against the YAML file's folder.
 A relative path read from an environment variable, or passed as a code override,
 resolves against the process's working directory.
@@ -137,9 +166,8 @@ resolves against the process's working directory.
 
 Remote providers take URLs and source identifiers from environment variables, and
 credentials from `secrets`. The variables go in `env/.env.connector` of your
-repository checkout. `harborrag doctor`
-fails its `connector credentials` check and names every blank variable an enabled
-remote entry needs.
+repository checkout. The `connector credentials` check of `harborrag doctor` warns and
+names every blank variable an enabled remote entry needs.
 
 ## GitHub
 
@@ -176,7 +204,7 @@ the pages of `space_key`. The shipped file takes both from the environment, and
 | `space_key` | Confluence | Space to read |
 | `content_types` | Confluence | `page`, `blogpost` or both; default `[page]` |
 | `deployment_type` | both | `cloud` or `datacenter`; when left out, a host ending in `.atlassian.net` means `cloud` |
-| `include_comments` | both | Read comments; default `true` for Jira, `false` for Confluence |
+| `include_comments` | both | Read comments; default `true` for Jira, `false` for Confluence. Jira comments limited to a role or group are always left out |
 | `include_attachments` | both | Read attachments as documents of their own; default `false` |
 
 `GET /v1/admin/source-types` lists every other option with its default; see
@@ -242,6 +270,10 @@ be listed in `HARBORRAG_CONNECTOR_ALLOWED_HOSTS`; see
 </details>
 
 The Jira connector reads `JIRA_TOKEN`, the variable `token_env` names.
+
+Each issue's typed custom fields become filterable `fields.<key>` values. How a field is
+named, and what happens to a very long name or to more than 128 fields on one issue, is
+in [Filter evidence by Jira fields](../detailed-guides/mcp-server/setup-and-integration.md#filter-evidence-by-jira-fields).
 
 ### Filter Jira and Confluence attachments by type
 
@@ -350,22 +382,27 @@ uv run python -m harborrag_adapters.connectors.sharepoint.login \
 The IDs default to `MICROSOFT_TENANT_ID` and `MICROSOFT_CLIENT_ID`. When they are not
 exported, the command reads those two values, and nothing else, from
 `env/.env.connector` (or `$CONNECTOR_ENV_FILE`) relative to the current directory, so
-from a checkout the command without arguments is enough.
+from a checkout the command without arguments is enough. A connection's own
+configuration does not read these two variables. The command refuses a tenant ID that
+is not a GUID or a domain name such as `contoso.onmicrosoft.com`, and it reaches
+Microsoft identity only through the destination policy: public addresses, plus the
+hosts and proxy setting of `HARBORRAG_CONNECTOR_ALLOWED_HOSTS` and
+`HARBORRAG_CONNECTOR_USE_PROXY`.
 
-The command prints a code to enter at `https://microsoft.com/devicelogin`, then
-stores the refresh token in
-`~/.harborrag/sharepoint/<harborrag-tenant>/token-<tenant>-<client>.json`, in the
-folder of the HarborRAG tenant the connection belongs to, so two tenants never share a
-sign-in. The tenant comes from `--harborrag-tenant`, else
-`HARBORRAG_INGESTION_TENANT_ID`, else `DEFAULT`. To use another file, set
-`token_cache_path` on the connection and pass the same path as `--token-cache-path`.
-Each run redeems the token and stores the rotated one. If the token expires or access
-is revoked, the run fails with an authentication error asking you to sign in again.
-`--logout` deletes the stored sign-in.
+The command prints a code to enter at `https://microsoft.com/devicelogin`, then stores
+the refresh token in
+`~/.harborrag/sharepoint/<harborrag-tenant>/token-<tenant>-<client>.json`, in the folder
+of the HarborRAG tenant the connection belongs to, so two tenants never share a sign-in.
+The tenant comes from `--harborrag-tenant`, else `HARBORRAG_TENANT_ID`, else `DEFAULT`.
+To use another file, set `token_cache_path` on the connection and pass the same path as
+`--token-cache-path`. Each run redeems the token and stores the rotated one. If the
+token expires or access is revoked, the run fails with an authentication error asking
+you to sign in again. `--logout` deletes the stored sign-in.
 
-That sign-in serves ingestion that runs on your machine (`harborrag ingest run`). The
-Temporal worker (`harborrag ingest start`) runs in a container that cannot read your
-home folder, so sign it in separately:
+That sign-in serves ingestion that runs on your machine
+(`harborrag ingestions start --inline`). The Temporal worker, which runs what
+`harborrag ingestions start` submits, runs in a container that cannot read your home
+folder, so sign it in separately:
 
 ```bash
 scripts/deployment/dev.sh sharepoint-login
@@ -443,14 +480,24 @@ extension, an empty scope list) fail when the connector is built.
 Items the connector declines are logged and reported in the connector's `skipped`
 list with one of these reasons: `NOT_IN_ALLOWLIST`, `UNSUPPORTED_EXTENSION`,
 `EXCEEDS_SIZE_LIMIT`, `DELETED`, `ACCESS_DENIED`, `TRANSIENT_ERROR_MAX_RETRIES`. A
-skipped item never stops the run. The run stops only on invalid config, rejected
-credentials, or a site the app has not been granted.
+skipped item does not stop the run.
 
-On HTTP 429 or 5xx the connector retries up to `max_retries` times, waiting for
-`Retry-After` when Graph sends it and otherwise backing off exponentially with
-jitter. When `Retry-After` asks for more than 300 seconds, the connector does not
-retry early; it skips the item as `TRANSIENT_ERROR_MAX_RETRIES`, and the next run
-picks it up.
+On HTTP 429 or 5xx the connector retries a request up to `max_retries` times (3 by
+default, at most 10), waiting for `Retry-After` when Graph sends it and otherwise
+backing off exponentially with jitter. What happens when the retries run out depends on
+the stage:
+
+- **Discovery** skips a folder or a selected item only when it is denied
+  (`ACCESS_DENIED`) or deleted (`DELETED`). When listing a folder, or fetching an item
+  that `item_ids` selects, is still throttled, answers 5xx or times out, discovery
+  fails instead, so the files below it are not taken as removed. Temporal retries
+  discovery from its last checkpoint.
+- **Loading a file** skips it as `TRANSIENT_ERROR_MAX_RETRIES`, and the next run picks
+  it up. So does a `Retry-After` that asks for more than 300 seconds: the connector
+  does not retry early.
+
+The run also stops on invalid config, rejected credentials, or a site the app has not
+been granted.
 
 ## Large runs
 
@@ -459,12 +506,11 @@ documents. Discovery is checkpointed per provider page and resumes after a failu
 and each document workflow reads only the plan page that holds it, so the run itself
 is bounded. What decides whether it finishes is outside the code:
 
-- **Rehearse with a limit.** Run the same scope first with `--limit` on
-  `harborrag ingest run|start`, which stops after that many discovered artifacts. It
-  gives the real documents-per-issue
-  ratio, the attachment size distribution, the failure classes (for example Word 6.0/95
-  `.doc` files, which are rejected as unsupported) and the throughput of *your* host. Extrapolate from
-  that, not from the issue count.
+- **Rehearse on a smaller scope.** Run a connection whose `jql` selects a few hundred
+  issues of the same project first. It gives the real documents-per-issue ratio, the
+  attachment size distribution, the failure classes (for example Word 6.0/95 `.doc`
+  files, which are rejected as unsupported) and the throughput of *your* host.
+  Extrapolate from that, not from the issue count.
 - **Throughput is CPU-bound.** OCR of image attachments dominates; on a 4-vCPU host
   with three workers expect roughly half a document per second, which is days for
   400,000 documents. A first pass with `include_attachments: false` finishes in hours
@@ -473,16 +519,16 @@ is bounded. What decides whether it finishes is outside the code:
   after its retries. Use a service credential that does not rotate during the run.
 - **Disk.** Every attachment is kept as an immutable artifact (up to
   `max_attachment_size_bytes` each). Size the object store from the rehearsal.
-- **Why did it stop?** `harborrag ingest status RUN_ID` and the run's event log record
-  pause, resume and cancel requests with who asked (`task.<id>.control` events, stored
-  but not sent on the HTTP event stream, where the new status appears as
-  `run.status`). A run that ends with `cancelled_at_safe_boundary` was cancelled on
-  request; it was not a timeout.
+- **Why did it stop?** `harborrag ingestions get INGESTION_ID` shows the run's status,
+  counters and `error_category`. The run's event log records pause, resume and cancel
+  requests with who asked (`task.<id>.control` events, stored but not sent on the HTTP
+  event stream, where the new status appears as `run.status`). A run that ends with
+  `cancelled_at_safe_boundary` was cancelled on request; it was not a timeout.
 
-HTTP connectors validate timeouts, retry counts, backoff, page sizes, request rates
-and source-specific collection and size limits. A connector's configuration is read
-when it is built, so build a new connector after changing settings. For credentialed
-checks against real systems, see
+HTTP connectors validate timeouts, retry counts (`max_retries` is at most 10), backoff,
+page sizes, request rates and source-specific collection and size limits. A connector's
+configuration is read when it is built, so build a new connector after changing
+settings. For credentialed checks against real systems, see
 [Real-system smoke checks](../../developers/testing/README.md#real-system-smoke-checks).
 
 ## Load and build

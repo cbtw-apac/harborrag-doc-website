@@ -9,9 +9,10 @@ source_path: docs/users/ingestion-modes.md
 Choose whether an ingestion skips the records it already indexed (`incremental`) or
 fetches and evaluates every record again (`force`). An ingestion is one run that reads a
 connection's source; a connection is one configured data source, such as a Jira project
-or a local folder. Both terms are defined in [Connections](connections.md#terms-used-on-this-page).
-The mode never changes what a connection reads: paths, queries, credentials, attachments
-and comments stay in the connection's stored configuration.
+or a local folder. Both terms are defined in
+[Connections](connections.md#terms-used-on-this-page). The mode never changes what a
+connection reads: paths, queries, credentials, attachments and comments stay in the
+connection's stored configuration.
 
 ## Set the mode where you start a run
 
@@ -20,13 +21,13 @@ Every way of starting a run sets the same switch:
 | Where you start the run | How to force re-evaluation |
 | --- | --- |
 | HTTP API | `"mode": "force"` in the `POST /v1/admin/ingestions` body |
-| CLI, by project and connection | `harborrag source sync PROJECT/CONNECTION --mode force` |
-| CLI, by `source_key` | `harborrag ingest start CONNECTOR --force-reprocess`, or the same option on `ingest run` |
+| CLI | `harborrag ingestions start PROJECT_ID/CONNECTION_ID --mode force`, with or without `--inline` |
 | Python SDK | `IngestionRequest(force_reprocess=True)` |
 | Schedule | `mode: force` under `source:` in `config/sources/schedules.yaml`; see [Scheduled ingestion](scheduled-ingestion.md) |
 
-Without one of these, a run is `incremental`. `CONNECTOR` is the connection's
-`source_key`; see [Name the connector](cli-reference/README.md#name-the-connector).
+Without one of these, a run is `incremental`. `PROJECT_ID/CONNECTION_ID` is the
+connection's ref, such as `default/harborrag-workspace`; see
+[Run and control ingestion](cli-reference/README.md#run-and-control-ingestion).
 
 The mode is not `execution_mode`, which is `direct` or `temporal` and chooses how a run
 executes rather than what it admits.
@@ -66,9 +67,16 @@ authoritative source scan, and compares each record with the active document ver
 
 - New source record: process and publish it.
 - Changed source or canonical content: create and publish a new immutable version.
-- Changed retrieval metadata: update the version and rebuild the required projections.
+- Changed retrieval metadata only, such as a Jira assignee, priority or status
+  category, or a local file's modification time under the default
+  `checksum_mode: stat`: create a new version that reuses the
+  stored evidence vectors and carries the new payload values.
 - Changed processing fingerprint: reprocess it, even in incremental mode.
 - Unchanged record: keep the active version and skip the expensive downstream work.
+  When the record had to be fetched to find that out, the change key the source
+  reports is stored, so the next run skips it before fetching.
+- Record that no longer yields any text, such as an emptied file: retire the active
+  version, so its old text leaves search, and report the document as skipped.
 - Missing record: apply the consecutive-miss policy before retiring it.
 
 So `incremental` still detects removals, and it works with connectors whose change
@@ -82,18 +90,12 @@ for the full artifact, projection, verification and publication path.
 
 ### Narrow a run
 
-`harborrag ingest start` and `harborrag ingest run` can narrow one run:
-
-- `--path`: a path inside the connector's source root; for a local folder, relative to
-  its `source_path`.
-- `--pattern`: a case-insensitive substring, or a glob matched against the path relative
-  to the source root.
-- `--filters-json`: connector filters as a JSON object; a local folder connection
-  rejects unknown keys.
-
-`source sync` does not take these options. The HTTP body takes `updated_after` instead,
-to re-read the items changed since a date-time; see
-[`POST /v1/admin/ingestions`](connections.md#post-v1adminingestions).
+A run reads the scope the connection's configuration defines. To re-read only the items
+changed since a date-time, send `updated_after` in the HTTP body, or pass
+`--updated-after` to `harborrag ingestions start`, with a UTC offset such as
+`2026-11-01T00:00:00Z`; see
+[`POST /v1/admin/ingestions`](connections.md#post-v1adminingestions). To narrow what a
+connection reads, change its `config`.
 
 ## Run a force ingestion
 
@@ -118,7 +120,8 @@ identity.
 Force mode is idempotent. If the resulting content, retrieval metadata and processing
 fingerprint match the active version, that version stays active and its completed
 projections are not rewritten. If any of them changed, the normal version, projection,
-verification and publication pipeline runs.
+verification and publication pipeline runs; when only the retrieval metadata changed,
+the new version reuses the stored evidence vectors instead of embedding the text again.
 
 Force mode does not:
 
@@ -138,7 +141,7 @@ workflow is the tool, but no CLI command or HTTP route starts it yet; see
 
 ## Run the CLI from a checkout
 
-From a repository checkout, `ingest run` and `ingest start` refuse the local SQLite
+From a repository checkout, `harborrag ingestions start` refuses the local SQLite
 control database until `HARBORRAG_CONTROL_DB_URL` points at the stack's Postgres. The
 setup is in [Run from a repository checkout](cli-reference/README.md#run-from-a-repository-checkout).
 Three details of that setup are not covered there:
@@ -165,4 +168,5 @@ Three details of that setup are not covered there:
 
 Starting a run while the connection is already ingesting answers `409 already_running`,
 with `details.ingestion_id` naming the running ingestion; no `Idempotency-Key` is
-needed.
+needed. `harborrag ingestions start --inline` refuses such a connection the same way,
+with exit 4.

@@ -22,7 +22,7 @@ A connector discovers and loads items from one kind of source system. Add a prov
 from collections.abc import Iterator
 
 from harborrag_adapters.connectors.base import BaseConnector
-from harborrag_adapters.connectors.schemas import ConnectorQuery
+from harborrag_core.ingestion.connector_contracts import ConnectorQuery
 from harborrag_core.domain.raw_document import RawDocument
 from harborrag_core.domain.source import SourceRecord
 
@@ -46,7 +46,20 @@ reported through `skipped` rather than silently omitted.
 Register one `ConnectorProviderDefinition` holding the connector class, typed config factory,
 aliases, constructor dependency names, config path fields and default document kind. Runtime
 configuration and construction derive their behaviour from this definition; do not add
-parallel provider-name switches. Users then configure the provider as described in
+parallel provider-name switches. A connector that opens HTTP sessions lists
+`"destination_policy": "destination_policy"` among its constructor dependencies, takes an
+optional `destination_policy: DestinationPolicy | None = None` argument and creates every
+session with `guarded_session(destination_policy or DestinationPolicy())`:
+
+```python
+from harborrag_adapters.connectors.policies.network import DestinationPolicy, guarded_session
+
+self.session = guarded_session(destination_policy or DestinationPolicy())
+```
+
+The runtime builds the policy once from the environment. A connector built without one gets
+the default policy, which reaches public addresses only, and never reads the environment
+itself. Users then configure the provider as described in
 [Connector Configuration](../../users/configuration/connector-config.md).
 
 Use fakes in tests; do not ship a provider `mock.py` as a substitute for production behaviour.
@@ -95,18 +108,18 @@ vector space and dimension.
 
 ## Repositories
 
-A repository is the adapter behind a storage port. Add a backend below the matching family:
+A repository is the adapter behind a storage port. The vector, graph and object-store
+families take a new backend in a provider folder:
 
 ```text
 repositories/vector/<provider>/
 repositories/graph/<provider>/
-repositories/cache/<provider>/
 repositories/object_store/<provider>/
-repositories/database/<provider>/
-repositories/state/<provider>/
 ```
 
-Implement the family's Harbor contract and its plugin and config pattern. A repository needs:
+Implement the family's Harbor contract (`HarborVectorRepository`, `HarborGraphRepository`
+or `HarborObjectStore`) and follow its plugin and config pattern, so the family client,
+such as `HarborVectorDBClient`, can build the backend by name. A repository needs:
 
 - an async lifecycle and async methods;
 - `StorageOperationContext` on data operations;
@@ -118,6 +131,13 @@ Implement the family's Harbor contract and its plugin and config pattern. A repo
 
 Use `repositories/`, not a new `stores/` family. Do not return raw provider responses by
 default.
+
+The relational stores are not provider families. `repositories/database/control_plane/`
+holds the control-plane repositories, and `repositories/database/ingestion_control/` holds
+the source-scan, document-version, task and publication repositories. Both use SQLAlchemy,
+so the database URL alone selects SQLite or PostgreSQL, and `control_plane/alembic/`
+migrates the tables of both. `repositories/backends/` holds the SQLAlchemy client and
+SQLite helpers they share. A change to these tables needs a migration, not a new backend.
 
 ### Selecting a storage provider in runtime
 
@@ -165,8 +185,12 @@ Provider-independent RAG behaviour goes in `harborrag-engine`:
 - normalization in `ingestion/normalizer.py` and chunking in `ingestion/chunking/`;
 - dense and sparse encoding in `ingestion/representations/`;
 - vector and graph projection building and verification in `ingestion/projections/`;
+- the document-release lifecycle, pipeline, service, materialization and projection
+  stages in `ingestion/release/`;
+- reindex and cleanup in `ingestion/maintenance/`;
 - retrieval candidates, fusion, active-version checks, evidence and graph retrieval in
-  `retrieval/`, with the `QueryRewriter` and `ResultReranker` ports in `retrieval/ports.py`;
+  `retrieval/`, with the `QueryRewriter` and `ResultReranker` ports in `retrieval/ports.py`
+  and the retrieval service in `retrieval/service/`;
 - semantic topology policy in `topology/`;
 - the shared reader tools served over MCP in `tools/`;
 - stored chat prompts in `chat/prompts/`.
@@ -179,8 +203,8 @@ subpackage into an engine stage.
 ## Runtime services
 
 Configuration loading, provider composition, checkpoint coordination and durable workflow
-code go in `harborrag-runtime`. Reuse the core job, repository, lifecycle and observation
-ports instead of adding runtime-owned copies.
+code go in `harborrag-runtime`. Reuse the core job and repository ports instead of adding
+runtime-owned copies.
 
 The catalog loaders in `harborrag_runtime.config` show the pattern: strict versioned schemas
 and `${NAME}` environment references. New composition code keeps construction explicit and
@@ -202,9 +226,12 @@ of core, adapters or engine.
 
 ## Application and MCP surfaces
 
-CLI and HTTP code call `BaseAppService`. The MCP server registers the shared reader tools from
-`harborrag_engine.tools`, bound to runtime's reader composition. Neither surface builds a
-provider client in a handler.
+CLI and HTTP code call `BaseAppService`, which lives in `harborrag_runtime.application`.
+New application services (chat turns, ingestion commands, control-plane use cases) go in
+that package; `harborrag_app` keeps only the transports and the `operations/` layer, and
+conversation memory policy and its use cases live in `harborrag-memory`. The MCP server
+registers the shared reader tools from `harborrag_engine.tools`, bound to runtime's reader
+composition. Neither surface builds a provider client in a handler.
 
 Stored chat prompts belong under `harborrag_engine/chat/prompts/templates/`. To add a public
 prompt, add its UTF-8 Markdown template, add a stable name to `ChatPrompt` and its filename to

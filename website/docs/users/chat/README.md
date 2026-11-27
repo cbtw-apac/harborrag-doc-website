@@ -26,6 +26,8 @@ through the [MCP tools](../detailed-guides/mcp-server/README.md) instead.
   nothing ingested, a question answers `409 no_indexed_content` and no model
   is called.
 - A configured chat model; see [Chat models](models.md).
+- For the CLI, a checkout whose `env/.env.api` carries the two corpus-mode
+  lines; see [Ask from the CLI](#ask-from-the-cli).
 - The API address. On the development stack the API listens on
   `http://127.0.0.1:8000`; `scripts/deployment/dev.sh up` starts it together
   with the services it needs.
@@ -42,6 +44,10 @@ curl --fail-with-body http://127.0.0.1:8000/v1/chat/completions \
 
 You should get a JSON answer with `answer`, `citations` and `usage`; see
 [Read the answer](#read-the-answer).
+If `citations` is empty although content is ingested, check the API's corpus access
+mode. The shipped `env-example/.env.api.example` sets `tenant_shared`; a deployment
+created from an older template has no such lines and runs `source_acl`. See
+[Troubleshooting](../troubleshooting/README.md#retrieval-chat-and-mcp).
 
 The development stack runs with `HARBORRAG_AUTH_MODE=none` and needs no
 credential. With authentication on, add `--header 'Authorization: Bearer <token>'`;
@@ -63,7 +69,7 @@ question. The `Idempotency-Key` header makes the request safe to retry
 curl --fail-with-body http://127.0.0.1:8000/v1/chat/completions \
   --header 'Content-Type: application/json' \
   --header 'Idempotency-Key: 5f0c2b1e-8d4a-4c3e-9f7b-1a2b3c4d5e6f' \
-  --data '{"session_id":"<session-id>","message":"Who has Go and Kubernetes experience?"}'
+  --data '{"session_id":"<session-id>","message":"Which services does the DEMO-1 design change?"}'
 ```
 
 | Request field | Default | Meaning |
@@ -120,10 +126,12 @@ What a turn may read:
 - `trace_id` is the request's trace ID (`X-Trace-Id`); the turn's model calls
   carry it into telemetry.
 - `answer` cites sources as `[n]`, one number per bracket. Citations are
-  numbered from 1 in the order the answer first cites them; every `[n]` has a
-  citation and every citation is cited. A list or range the model writes, such
-  as `[1, 3]` or `[2-3]`, becomes `[1][3]` or `[2][3]`; a number that names no
-  retrieved passage is removed from the answer with the space before it.
+  numbered from 1 in the order the answer first cites them, and every citation
+  is cited. A bracket the model writes is rewritten only when every number in it
+  names a retrieved passage: a list or range such as `[1, 3]` or `[2-3]` becomes
+  `[1][3]` or `[2][3]`. Every other bracket stays as written, such as a number
+  that names no passage (`[9]`, or a year such as `[2024]`), a list glued to a
+  word (`m[1, 2]`), and anything inside inline code or a code block.
 - Each citation names its `chunk_id` (the passage), `document_id` and
   `title`, a `snippet` of the passage of up to about 300 characters, and `url`
   or `page` when the source has one.
@@ -137,14 +145,14 @@ A session is titled automatically after its first exchange; see
 
 ## Choose a mode
 
-| Mode | Model calls | Graph observation |
+| Mode | Model calls | Retrieval mode |
 | --- | --- | --- |
-| `classic` | A request-scope check, then the answer | Per `HARBORRAG_CHAT_RETRIEVAL_GRAPH_SEARCH` |
-| `instant` | The answer only | Never |
+| `classic` | A request-scope check, then the answer | `local_semantic` while `HARBORRAG_CHAT_RETRIEVAL_GRAPH_SEARCH` is on, else `flat` |
+| `instant` | The answer only | `flat` |
 
-Both modes retrieve with the same settings. The `classic` scope check is a
-model call that allows questions about indexed knowledge, relevant source
-code, and the conversation:
+Apart from that, both modes retrieve with the same settings. The `classic`
+scope check is a model call that allows questions about indexed knowledge,
+relevant source code, and the conversation:
 
 - An unrelated creation request, for example "write a Python snake game", gets
   an ordinary `200` answer explaining the assistant's scope, with no citations
@@ -212,15 +220,18 @@ moves to its new event contract; do not build on them beyond this release.
 
 Chat searches the raw question with hybrid retrieval, which combines dense
 (embedding) and sparse (keyword) matching, within the connections the turn may
-read. Graph-enabled `classic` turns observe the graph around the passages
-found; a turn narrowed to projects or connections does not widen its results
-through the graph. The prompt separates conversation context from document
-evidence and tells the model to cite only the sources it uses.
+read. With `HARBORRAG_CHAT_RETRIEVAL_GRAPH_SEARCH` on, a `classic` turn
+retrieves in `local_semantic` mode, which adds passages found by a bounded
+graph expansion around the first hits; it does not return graph records. A
+turn narrowed to projects or connections, or given `filters`, keeps `flat`
+retrieval and does not widen its results through the graph. The prompt
+separates conversation context from document evidence and tells the model to
+cite only the sources it uses.
 
 | Setting | Default | Purpose |
 | --- | --- | --- |
 | `HARBORRAG_CHAT_RETRIEVAL_TOP_K` | `5` | Requested retrieval candidates; applies until `retrieval.top_k` is overridden for the session's project or the tenant ([Runtime settings](../configuration/runtime-settings.md)) |
-| `HARBORRAG_CHAT_RETRIEVAL_GRAPH_SEARCH` | `false` | Graph observation in `classic` mode |
+| `HARBORRAG_CHAT_RETRIEVAL_GRAPH_SEARCH` | `false` | `local_semantic` retrieval, with bounded graph expansion, in `classic` mode |
 | `HARBORRAG_CHAT_RETRIEVAL_MIN_RELEVANCE` | `0.0` | Optional evidence relevance threshold, compared with the retrieval similarity, never the rerank score |
 
 `retrieval.top_k` and `retrieval.rerank` are read on every turn, at the level of
@@ -271,35 +282,55 @@ Renaming and deleting a session come back in v2.1.
 
 ## Ask from the CLI
 
-From a repository checkout, the CLI does not read the worker's
-`env/.env.temporal`, so first export the shared-corpus settings in the shell
-you ask from, or retrieval finds nothing:
+The CLI reads the corpus mode from the API's env file, so it answers from the
+same documents as HTTP chat. The shipped `env-example/.env.api.example` sets
+`tenant_shared` for the `DEFAULT` tenant, and from a repository checkout the CLI
+reads exactly these two lines of `env/.env.api` (the file named by `API_ENV_FILE`
+when you set it), plus its `HARBORRAG_TENANT_ID` line as the default tenant, and nothing
+else in that file:
 
 ```bash
-export HARBORRAG_CORPUS_ACCESS_MODE=tenant_shared
-export HARBORRAG_CORPUS_SHARED_TENANT_ID=DEFAULT
+HARBORRAG_CORPUS_ACCESS_MODE=tenant_shared
+HARBORRAG_CORPUS_SHARED_TENANT_ID=DEFAULT
 ```
 
-Then ask, and pass the returned `session_id` back to continue the
-conversation:
+A variable exported in your shell outranks the file. Only the shared tenant reads
+the whole corpus; any other tenant, for example one picked with `--tenant`, stays
+on `source_acl`, where a caller with no source permissions gets no sources. To
+return the `DEFAULT` tenant to `source_acl`, remove both lines from
+`env/.env.api` and restart the API. An `env/.env.api` created from an older
+template has neither line: add them, then restart the API. `harborrag doctor` shows
+the `corpus mode` the CLI will use for the tenant it acts in.
+
+`harborrag chat` calls `POST /v1/chat/completions` with
+`stream: false`, so it takes the same fields and answers the same body:
 
 ```bash
-uv run harborrag chat "Explain HarborRAG in one paragraph." --json
-uv run harborrag chat "Explain the last point." --session <session-id> --json
+uv run harborrag chat "Explain HarborRAG in one paragraph." -o json
+uv run harborrag chat "Explain the last point." --session-id <session-id> -o json
 ```
 
 How the command behaves:
 
-- Without `--session`, it creates a session, in the project `--project` names
-  when given (validated like HTTP). An existing session keeps its own project,
-  so `--session` with `--project` is refused.
-- `--tenant` picks the tenant, `DEFAULT` unless you pass another.
-- It answers in `classic` mode.
-- `--json` prints one envelope, `{"ok": ..., "data": ..., "error": ...}`,
-  whose `data` is the same completion body as the HTTP answer. Pass its
-  `session_id` to `--session` to continue the conversation.
+- Without `--session-id`, it asks a one-off question: nothing is stored and
+  no session is created. `--project-id` limits a one-off question to a
+  project; repeat it for more.
+- `--session-id` continues a session you created with
+  `POST /v1/chat/sessions`; the command cannot create one.
+- `--connection-ref PROJECT_ID/CONNECTION_ID` narrows the search to a
+  connection; repeat it for more.
+- `--mode` is `classic` (the default) or `instant`; `advanced` and `auto`
+  pass validation but answer `422 mode_unavailable` until v2.1.0.
+- `--tenant` picks the tenant: `HARBORRAG_TENANT_ID`, else the CLI profile's,
+  else the `HARBORRAG_TENANT_ID` line of `env/.env.api`, else `DEFAULT`.
+- `-o json` prints the completion body, the same as the HTTP answer; in a
+  terminal it prints the answer and then one line per citation. An error goes
+  to stderr as the HTTP error envelope, with the
+  [exit code](../cli-reference/README.md#read-errors-and-exit-codes) of its
+  status.
 
-All options are in the [CLI reference](../cli-reference/README.md).
+Every option is in the
+[CLI command reference](../cli-reference/commands.md#harborrag-chat).
 
 ## Migration
 
