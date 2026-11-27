@@ -209,7 +209,7 @@ def test_apply_links_reports_every_broken_link():
         BrokenLink(PurePosixPath("docs/users/README.md"), "missing.md"),
         BrokenLink(PurePosixPath("docs/developers/README.md"), "gone.md"),
     ]
-    assert "docs/users/README.md: missing.md" in str(exc.value)
+    assert "docs/users/README.md:1: broken link missing.md" in str(exc.value)
 
 
 # --------------------------------------------------------------------------- images
@@ -342,3 +342,72 @@ def test_link_to_toc_goes_to_first_sidebar_page():
 
     assert rewrite_links(doc, mapping=mapping, source_root=NO_ROOT) == []
     assert doc.body == "[Documentation index](../getting-started/README.md)\n"
+
+
+# --------------------------------------------------------------------------- anchors
+
+
+def _mcp_docs(link: str) -> list[Doc]:
+    """The HARBORRAG-1077 case: setup-and-integration.md links into the MCP README."""
+    readme = "# MCP server\n\n## Policy and audit status\n\nText.\n"
+    setup = "# Setup\n\nIntro.\n\n" + f"See [Policy and audit]({link}).\n"
+    return [
+        _doc("docs/users/detailed-guides/mcp-server/README.md", readme),
+        _doc("docs/users/detailed-guides/mcp-server/setup-and-integration.md", setup),
+    ]
+
+
+def _mcp_mapping(docs: list[Doc]) -> dict[Path, str]:
+    return {d.source_path: d.target_path.as_posix() for d in docs}
+
+
+def test_apply_links_rejects_missing_anchor_on_existing_page():
+    docs = _mcp_docs("README.md#policy-and-audit")
+
+    with pytest.raises(BrokenLinksError) as exc:
+        apply_links(docs, mapping=_mcp_mapping(docs), source_root=NO_ROOT)
+
+    assert exc.value.broken == [
+        BrokenLink(
+            PurePosixPath("docs/users/detailed-guides/mcp-server/setup-and-integration.md"),
+            "README.md#policy-and-audit",
+        )
+    ]
+    assert (
+        "docs/users/detailed-guides/mcp-server/setup-and-integration.md:5: "
+        "broken anchor README.md#policy-and-audit"
+    ) in str(exc.value)
+
+
+def test_apply_links_accepts_existing_anchor():
+    docs = _mcp_docs("README.md#policy-and-audit-status")
+
+    apply_links(docs, mapping=_mcp_mapping(docs), source_root=NO_ROOT)
+
+    assert "](README.md#policy-and-audit-status)" in docs[1].body
+
+
+def test_apply_links_checks_same_page_anchor():
+    docs = [_doc("docs/users/guide.md", "# Guide\n\n## Setup\n\n[a](#setup) [b](#nope)\n")]
+
+    with pytest.raises(BrokenLinksError) as exc:
+        apply_links(docs, mapping={}, source_root=NO_ROOT)
+
+    assert [b.link for b in exc.value.broken] == ["#nope"]
+    assert exc.value.broken[0].reason == "broken anchor"
+
+
+def test_apply_links_ignores_anchor_on_github_and_absolute_targets(tmp_path):
+    (tmp_path / "config").mkdir()
+    (tmp_path / "config" / "x.yaml").write_text("a: 1\n")
+    docs = [
+        _doc("docs/users/guide.md", "[a](../../config/x.yaml#L3) [b](../../CONTRIBUTING.md#x)\n")
+    ]
+
+    apply_links(docs, mapping=MAPPING, source_root=tmp_path)  # nothing to check against
+
+
+def test_rewrite_link_without_anchor_index_keeps_old_behaviour():
+    assert _rewrite("docs/users/chat/README.md", "../configuration/README.md#anything") == (
+        "../configuration/README.md#anything"
+    )

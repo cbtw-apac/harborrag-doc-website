@@ -50,8 +50,16 @@ Everything else in the checkout is treated as internal and never reaches the sit
    a `<` followed by something that cannot start a tag (`<=`, `<5`; `a < b` is fine), or a
    `<!--` without `-->` on the same line. Fenced blocks, inline code (also across lines) and
    closed comments are ignored.
-7. **links** (`links.py`): rewrite relative links to site links; files that are not published
-   point to GitHub (`blob`/`tree`) or `raw.githubusercontent.com` for images. Broken links fail.
+7. **links** (`links.py`, `anchors.py`): rewrite relative links to site links; files that are not
+   published point to GitHub (`blob`/`tree`) or `raw.githubusercontent.com` for images. A link to a
+   missing file fails with `path:line: broken link <target>`.
+   Anchors are checked too, because the site builds with `onBrokenAnchors: 'throw'`: a link to a
+   site page (`README.md#x`) or within the same page (`#x`) must point to a heading that exists
+   there, or it fails with `path:line: broken anchor <target>`. `anchors.py` computes each page's
+   ids the way Docusaurus does: headings slugged like `github-slugger` (lowercase, punctuation
+   dropped, spaces to `-`), `-1`/`-2` for duplicates, `{#custom-id}` and HTML `id="..."`; headings
+   in code fences are ignored, and the H1 becomes the title, so it has no anchor. Anchors on links
+   that point to GitHub (`config/x.yaml#L3`) are not checked.
 8. **MDX rewrite** (`mdx.mdx_sanitize`): rewrite what MDX rejects but can be fixed: autolinks
    `<https://…>`, unclosed void tags, one-line `<!-- -->` comments.
 9. **frontmatter** (`frontmatter.py`): move the H1 into `title`, take the first prose paragraph as
@@ -125,7 +133,8 @@ scripts/ingest/
 │   ├── bridge.py        # root files and package READMEs -> project/, packages/
 │   ├── guard.py         # publication and branding guards
 │   ├── toc.py           # docs/TOC.md -> sidebars.ts
-│   ├── links.py         # link rewriting
+│   ├── links.py         # link rewriting and broken link/anchor checks
+│   ├── anchors.py       # heading ids of a page, as Docusaurus generates them
 │   ├── mdx.py           # MDX rewrites and unsafe-prose detector
 │   ├── frontmatter.py   # title, description, edit URL; page rendering
 │   ├── writer.py        # staging, atomic swap, sync-state.json
@@ -159,7 +168,8 @@ purpose, update `EXPECTED_PAGES` / `EXPECTED_SIDEBARS_TS` there and review the d
 | `Publication denied. Forbidden content found in:` | Remove the content upstream, or (if it is safe) adjust `deny.txt`. |
 | `path:line: <match>` from the branding guard | Update the wording upstream, or mark an intended mention with `<!-- branding-compat -->` on that line or the line above. |
 | `MDX-unsafe content in source docs:` | Upstream: wrap the text in backticks or a code fence, or escape it. |
-| Broken link errors | Fix the link upstream, or publish the target file. |
+| `path:line: broken link <target>` | Fix the link upstream, or publish the target file. |
+| `path:line: broken anchor <target>` | The target page exists but has no such heading. Fix the `#anchor` upstream to match the heading, e.g. `## Policy and audit status` is `#policy-and-audit-status`. |
 | `Could not determine product version from source` | The source has no `pyproject.toml` with `[project].version`; pass `--product-version` explicitly. |
 | `Version/channel mismatch` | Use `prerelease` only for pre-release versions (`2.1.0a1`); `main` accepts any version. |
 | `Stable snapshots are not available yet` | `--channel stable` (and `make sync-stable`) lands in Phase 5. |
