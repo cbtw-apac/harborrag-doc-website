@@ -1,11 +1,12 @@
 ---
 title: Running HarborRAG from a checkout
-description: Work on HarborRAG itself once the Quick Start has your checkout and its
-  local stack running. This page shows how to explore the code without services, start…
+description: -- update the document for testing the auto sync document website---
+  Work on HarborRAG itself once the Quick Start has your checkout and its local stack…
 custom_edit_url: https://github.com/cbtw-apac/HarborRAG/edit/main/docs/developers/checkout-quick-start.md
 source_path: docs/developers/checkout-quick-start.md
 ---
 
+-- update the document for testing the auto sync document website---
 Work on HarborRAG itself once the [Quick Start](../getting-started/quick-start.md) has your
 checkout and its local stack running. This page shows how to explore the code without
 services, start and rebuild one service at a time, drive ingestion runs, and run the tests.
